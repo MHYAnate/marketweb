@@ -1,0 +1,7 @@
+If You See Errors When Running npm run dev
+Some Next.js 15 changes might require code updates:
+
+Bash
+
+# Run automatic code fixes
+npx @next/codemod@latest upgrade
