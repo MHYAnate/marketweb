@@ -1,0 +1,2712 @@
+ackend/src/vendors/schemas/vendor.schema.ts
+TypeScript
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
+
+export type VendorDocument = Vendor & Document;
+
+export enum VendorStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
+  SUSPENDED = 'suspended',
+}
+
+@Schema({ timestamps: true })
+export class Vendor {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
+  user: User | Types.ObjectId;
+
+  @Prop({ required: true })
+  businessName: string;
+
+  @Prop({ required: true })
+  businessDescription: string;
+
+  @Prop()
+  businessAddress: string;
+
+  @Prop()
+  businessPhone: string;
+
+  @Prop()
+  businessEmail: string;
+
+  @Prop()
+  logo?: string;
+
+  @Prop([String])
+  documents: string[];
+
+  @Prop({ type: String, enum: VendorStatus, default: VendorStatus.PENDING })
+  status: VendorStatus;
+
+  @Prop()
+  verifiedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  verifiedBy?: User | Types.ObjectId;
+
+  @Prop()
+  rejectionReason?: string;
+
+  @Prop({ default: 0 })
+  totalGoods: number;
+
+  @Prop({ default: 0 })
+  rating: number;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const VendorSchema = SchemaFactory.createForClass(Vendor);
+
+// Indexes
+VendorSchema.index({ user: 1 });
+VendorSchema.index({ status: 1 });
+VendorSchema.index({ businessName: 'text', businessDescription: 'text' });
+
+VendorSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});
+backend/src/vendors/dto/create-vendor.dto.ts
+TypeScript
+
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsArray,
+} from 'class-validator';
+
+export class CreateVendorDto {
+  @IsNotEmpty()
+  @IsString()
+  businessName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  businessDescription: string;
+
+  @IsOptional()
+  @IsString()
+  businessAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  businessPhone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  businessEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  logo?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documents?: string[];
+}
+backend/src/vendors/dto/update-vendor.dto.ts
+TypeScript
+
+import { PartialType } from '@nestjs/mapped-types';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { CreateVendorDto } from './create-vendor.dto';
+import { VendorStatus } from '../schemas/vendor.schema';
+
+export class UpdateVendorDto extends PartialType(CreateVendorDto) {}
+
+export class UpdateVendorStatusDto {
+  @IsEnum(VendorStatus)
+  status: VendorStatus;
+
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}
+backend/src/vendors/vendors.service.ts
+TypeScript
+
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Vendor, VendorDocument, VendorStatus } from './schemas/vendor.schema';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto, UpdateVendorStatusDto } from './dto/update-vendor.dto';
+import { UsersService } from '../users/users.service';
+import { Role } from '../common/enums/role.enum';
+
+@Injectable()
+export class VendorsService {
+  constructor(
+    @InjectModel(Vendor.name) private vendorModel: Model<VendorDocument>,
+    private usersService: UsersService,
+  ) {}
+
+  async create(userId: string, createVendorDto: CreateVendorDto): Promise<Vendor> {
+    // Check if user already has a vendor profile
+    const existingVendor = await this.vendorModel.findOne({ user: userId });
+    if (existingVendor) {
+      throw new ConflictException('Vendor profile already exists');
+    }
+
+    const vendor = new this.vendorModel({
+      ...createVendorDto,
+      user: userId,
+    });
+
+    await vendor.save();
+
+    // Update user role to vendor
+    await this.usersService.updateRole(userId, Role.VENDOR);
+
+    return vendor.populate('user', '-password');
+  }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    status?: VendorStatus,
+    search?: string,
+  ): Promise<{ vendors: Vendor[]; total: number; pages: number }> {
+    const query: any = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    const skip = (page - 1) * limit;
+    const [vendors, total] = await Promise.all([
+      this.vendorModel
+        .find(query)
+        .populate('user', '-password')
+        .populate('verifiedBy', '-password')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      this.vendorModel.countDocuments(query),
+    ]);
+
+    return {
+      vendors,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string): Promise<Vendor> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid vendor ID');
+    }
+
+    const vendor = await this.vendorModel
+      .findById(id)
+      .populate('user', '-password')
+      .populate('verifiedBy', '-password');
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    return vendor;
+  }
+
+  async findByUserId(userId: string): Promise<Vendor | null> {
+    return this.vendorModel
+      .findOne({ user: userId })
+      .populate('user', '-password');
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateVendorDto: UpdateVendorDto,
+  ): Promise<Vendor> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    // Check ownership
+    if (vendor.user.toString() !== userId) {
+      throw new ForbiddenException('You can only update your own vendor profile');
+    }
+
+    Object.assign(vendor, updateVendorDto);
+    await vendor.save();
+
+    return vendor.populate('user', '-password');
+  }
+
+  async updateStatus(
+    id: string,
+    adminId: string,
+    updateStatusDto: UpdateVendorStatusDto,
+  ): Promise<Vendor> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    vendor.status = updateStatusDto.status;
+
+    if (updateStatusDto.status === VendorStatus.VERIFIED) {
+      vendor.verifiedAt = new Date();
+      vendor.verifiedBy = new Types.ObjectId(adminId);
+      vendor.rejectionReason = undefined;
+    } else if (updateStatusDto.status === VendorStatus.REJECTED) {
+      vendor.rejectionReason = updateStatusDto.rejectionReason;
+    }
+
+    await vendor.save();
+
+    return vendor.populate(['user', 'verifiedBy']);
+  }
+
+  async incrementGoodsCount(vendorId: string, increment: number = 1): Promise<void> {
+    await this.vendorModel.findByIdAndUpdate(vendorId, {
+      $inc: { totalGoods: increment },
+    });
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    if (vendor.user.toString() !== userId) {
+      throw new ForbiddenException('You can only delete your own vendor profile');
+    }
+
+    await vendor.deleteOne();
+
+    // Revert user role to regular user
+    await this.usersService.updateRole(userId, Role.USER);
+  }
+}
+backend/src/vendors/vendors.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { VendorsService } from './vendors.service';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto, UpdateVendorStatusDto } from './dto/update-vendor.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+import { VendorStatus } from './schemas/vendor.schema';
+
+@Controller('vendors')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class VendorsController {
+  constructor(private readonly vendorsService: VendorsService) {}
+
+  @Post()
+  async create(
+    @CurrentUser() user: User,
+    @Body() createVendorDto: CreateVendorDto,
+  ) {
+    return this.vendorsService.create(user._id.toString(), createVendorDto);
+  }
+
+  @Public()
+  @Get()
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: VendorStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.vendorsService.findAll(page, limit, status, search);
+  }
+
+  @Get('my-profile')
+  async getMyProfile(@CurrentUser() user: User) {
+    return this.vendorsService.findByUserId(user._id.toString());
+  }
+
+  @Public()
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.vendorsService.findOne(id);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateVendorDto: UpdateVendorDto,
+  ) {
+    return this.vendorsService.update(id, user._id.toString(), updateVendorDto);
+  }
+
+  @Patch(':id/status')
+  @Roles(Role.ADMIN)
+  async updateStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateStatusDto: UpdateVendorStatusDto,
+  ) {
+    return this.vendorsService.updateStatus(
+      id,
+      user._id.toString(),
+      updateStatusDto,
+    );
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string, @CurrentUser() user: User) {
+    await this.vendorsService.remove(id, user._id.toString());
+    return { message: 'Vendor profile deleted successfully' };
+  }
+}
+backend/src/vendors/vendors.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { VendorsService } from './vendors.service';
+import { VendorsController } from './vendors.controller';
+import { Vendor, VendorSchema } from './schemas/vendor.schema';
+import { UsersModule } from '../users/users.module';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Vendor.name, schema: VendorSchema }]),
+    UsersModule,
+  ],
+  controllers: [VendorsController],
+  providers: [VendorsService],
+  exports: [VendorsService],
+})
+export class VendorsModule {}
+backend/src/goods/schemas/goods.schema.ts
+TypeScript
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
+import { Vendor } from '../../vendors/schemas/vendor.schema';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export type GoodsDocument = Goods & Document;
+
+@Schema({ timestamps: true })
+export class Goods {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ required: true })
+  description: string;
+
+  @Prop({ required: true })
+  price: number;
+
+  @Prop({ type: String, enum: GoodsType, required: true })
+  type: GoodsType;
+
+  @Prop()
+  category: string;
+
+  @Prop([String])
+  images: string[];
+
+  @Prop({ type: String, enum: GoodsStatus, default: GoodsStatus.PENDING })
+  status: GoodsStatus;
+
+  @Prop({ type: Types.ObjectId, ref: 'Vendor', required: true })
+  vendor: Vendor | Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  createdBy: User | Types.ObjectId;
+
+  @Prop()
+  location?: string;
+
+  @Prop({ type: Object })
+  specifications?: Record<string, any>;
+
+  @Prop({ default: 0 })
+  views: number;
+
+  @Prop()
+  flagReason?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  flaggedBy?: User | Types.ObjectId;
+
+  @Prop()
+  flaggedAt?: Date;
+
+  @Prop()
+  approvedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  approvedBy?: User | Types.ObjectId;
+
+  @Prop({ default: true })
+  isAvailable: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const GoodsSchema = SchemaFactory.createForClass(Goods);
+
+// Indexes
+GoodsSchema.index({ title: 'text', description: 'text' });
+GoodsSchema.index({ vendor: 1 });
+GoodsSchema.index({ status: 1 });
+GoodsSchema.index({ type: 1 });
+GoodsSchema.index({ category: 1 });
+GoodsSchema.index({ price: 1 });
+GoodsSchema.index({ createdAt: -1 });
+
+GoodsSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});
+backend/src/goods/dto/create-goods.dto.ts
+TypeScript
+
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsArray,
+  IsObject,
+  Min,
+} from 'class-validator';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export class CreateGoodsDto {
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
+  description: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsNotEmpty()
+  @IsEnum(GoodsType)
+  type: GoodsType;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsObject()
+  specifications?: Record<string, any>;
+}
+backend/src/goods/dto/update-goods.dto.ts
+TypeScript
+
+import { PartialType } from '@nestjs/mapped-types';
+import { IsBoolean, IsOptional } from 'class-validator';
+import { CreateGoodsDto } from './create-goods.dto';
+
+export class UpdateGoodsDto extends PartialType(CreateGoodsDto) {
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
+}
+backend/src/goods/dto/query-goods.dto.ts
+TypeScript
+
+import {
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export class QueryGoodsDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+
+  @IsOptional()
+  @IsEnum(GoodsStatus)
+  status?: GoodsStatus;
+
+  @IsOptional()
+  @IsEnum(GoodsType)
+  type?: GoodsType;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  vendorId?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string = 'createdAt';
+
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc' = 'desc';
+}
+backend/src/goods/goods.service.ts
+TypeScript
+
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Goods, GoodsDocument } from './schemas/goods.schema';
+import { CreateGoodsDto } from './dto/create-goods.dto';
+import { UpdateGoodsDto } from './dto/update-goods.dto';
+import { QueryGoodsDto } from './dto/query-goods.dto';
+import { VendorsService } from '../vendors/vendors.service';
+import { GoodsStatus } from '../common/enums/goods-status.enum';
+import { VendorStatus } from '../vendors/schemas/vendor.schema';
+
+@Injectable()
+export class GoodsService {
+  constructor(
+    @InjectModel(Goods.name) private goodsModel: Model<GoodsDocument>,
+    private vendorsService: VendorsService,
+  ) {}
+
+  async create(userId: string, createGoodsDto: CreateGoodsDto): Promise<Goods> {
+    // Get vendor profile
+    const vendor = await this.vendorsService.findByUserId(userId);
+
+    if (!vendor) {
+      throw new ForbiddenException('You must be a vendor to create goods');
+    }
+
+    if (vendor.status !== VendorStatus.VERIFIED) {
+      throw new ForbiddenException('Your vendor profile must be verified to create goods');
+    }
+
+    const goods = new this.goodsModel({
+      ...createGoodsDto,
+      vendor: vendor._id,
+      createdBy: userId,
+    });
+
+    await goods.save();
+
+    // Increment vendor goods count
+    await this.vendorsService.incrementGoodsCount(vendor._id.toString());
+
+    return goods.populate(['vendor', 'createdBy']);
+  }
+
+  async findAll(
+    queryDto: QueryGoodsDto,
+    publicOnly: boolean = false,
+  ): Promise<{ goods: Goods[]; total: number; pages: number }> {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      type,
+      category,
+      search,
+      minPrice,
+      maxPrice,
+      vendorId,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = queryDto;
+
+    const query: any = {};
+
+    // For public access, only show approved goods
+    if (publicOnly) {
+      query.status = GoodsStatus.APPROVED;
+      query.isAvailable = true;
+    } else if (status) {
+      query.status = status;
+    }
+
+    if (type) {
+      query.type = type;
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.price = {};
+      if (minPrice !== undefined) {
+        query.price.$gte = minPrice;
+      }
+      if (maxPrice !== undefined) {
+        query.price.$lte = maxPrice;
+      }
+    }
+
+    if (vendorId) {
+      query.vendor = vendorId;
+    }
+
+    const skip = (page - 1) * limit;
+    const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    const [goods, total] = await Promise.all([
+      this.goodsModel
+        .find(query)
+        .populate('vendor')
+        .populate('createdBy', '-password')
+        .skip(skip)
+        .limit(limit)
+        .sort(sort),
+      this.goodsModel.countDocuments(query),
+    ]);
+
+    return {
+      goods,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string, incrementViews: boolean = false): Promise<Goods> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid goods ID');
+    }
+
+    const goods = await this.goodsModel
+      .findById(id)
+      .populate('vendor')
+      .populate('createdBy', '-password')
+      .populate('flaggedBy', '-password')
+      .populate('approvedBy', '-password');
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    if (incrementViews) {
+      goods.views += 1;
+      await goods.save();
+    }
+
+    return goods;
+  }
+
+  async findByVendor(
+    vendorId: string,
+    queryDto: QueryGoodsDto,
+  ): Promise<{ goods: Goods[]; total: number; pages: number }> {
+    return this.findAll({ ...queryDto, vendorId }, false);
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateGoodsDto: UpdateGoodsDto,
+  ): Promise<Goods> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    // Check ownership
+    if (goods.createdBy.toString() !== userId) {
+      throw new ForbiddenException('You can only update your own goods');
+    }
+
+    Object.assign(goods, updateGoodsDto);
+    await goods.save();
+
+    return goods.populate(['vendor', 'createdBy']);
+  }
+
+  async updateStatus(
+    id: string,
+    adminId: string,
+    status: GoodsStatus,
+    reason?: string,
+  ): Promise<Goods> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    goods.status = status;
+
+    if (status === GoodsStatus.APPROVED) {
+      goods.approvedAt = new Date();
+      goods.approvedBy = new Types.ObjectId(adminId);
+      goods.flagReason = undefined;
+      goods.flaggedBy = undefined;
+      goods.flaggedAt = undefined;
+    } else if (status === GoodsStatus.FLAGGED) {
+      goods.flagReason = reason;
+      goods.flaggedBy = new Types.ObjectId(adminId);
+      goods.flaggedAt = new Date();
+    } else if (status === GoodsStatus.DROPPED) {
+      goods.flagReason = reason;
+      goods.flaggedBy = new Types.ObjectId(adminId);
+      goods.flaggedAt = new Date();
+      goods.isAvailable = false;
+    }
+
+    await goods.save();
+
+    return goods.populate(['vendor', 'createdBy', 'flaggedBy', 'approvedBy']);
+  }
+
+  async remove(id: string, userId: string, isAdmin: boolean = false): Promise<void> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    // Check ownership or admin status
+    if (!isAdmin && goods.createdBy.toString() !== userId) {
+      throw new ForbiddenException('You can only delete your own goods');
+    }
+
+    // Decrement vendor goods count
+    await this.vendorsService.incrementGoodsCount(goods.vendor.toString(), -1);
+
+    await goods.deleteOne();
+  }
+
+  async getCategories(): Promise<string[]> {
+    return this.goodsModel.distinct('category', { status: GoodsStatus.APPROVED });
+  }
+
+  async getStats(): Promise<{
+    total: number;
+    pending: number;
+    approved: number;
+    flagged: number;
+    dropped: number;
+  }> {
+    const [total, pending, approved, flagged, dropped] = await Promise.all([
+      this.goodsModel.countDocuments(),
+      this.goodsModel.countDocuments({ status: GoodsStatus.PENDING }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.APPROVED }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.FLAGGED }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.DROPPED }),
+    ]);
+
+    return { total, pending, approved, flagged, dropped };
+  }
+}
+backend/src/goods/goods.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { GoodsService } from './goods.service';
+import { CreateGoodsDto } from './dto/create-goods.dto';
+import { UpdateGoodsDto } from './dto/update-goods.dto';
+import { QueryGoodsDto } from './dto/query-goods.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+
+@Controller('goods')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class GoodsController {
+  constructor(private readonly goodsService: GoodsService) {}
+
+  @Post()
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async create(
+    @CurrentUser() user: User,
+    @Body() createGoodsDto: CreateGoodsDto,
+  ) {
+    return this.goodsService.create(user._id.toString(), createGoodsDto);
+  }
+
+  // Public endpoint - no auth required
+  @Public()
+  @Get()
+  async findAll(@Query() queryDto: QueryGoodsDto) {
+    return this.goodsService.findAll(queryDto, true);
+  }
+
+  // Admin endpoint - all goods
+  @Get('admin')
+  @Roles(Role.ADMIN)
+  async findAllAdmin(@Query() queryDto: QueryGoodsDto) {
+    return this.goodsService.findAll(queryDto, false);
+  }
+
+  // Get vendor's own goods
+  @Get('my-goods')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async findMyGoods(
+    @CurrentUser() user: User,
+    @Query() queryDto: QueryGoodsDto,
+  ) {
+    const vendor = await this.goodsService.findAll(
+      { ...queryDto, vendorId: undefined },
+      false,
+    );
+    return vendor;
+  }
+
+  @Public()
+  @Get('categories')
+  async getCategories() {
+    return this.goodsService.getCategories();
+  }
+
+  @Get('stats')
+  @Roles(Role.ADMIN)
+  async getStats() {
+    return this.goodsService.getStats();
+  }
+
+  @Public()
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.goodsService.findOne(id, true);
+  }
+
+  @Patch(':id')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateGoodsDto: UpdateGoodsDto,
+  ) {
+    return this.goodsService.update(id, user._id.toString(), updateGoodsDto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async remove(@Param('id') id: string, @CurrentUser() user: User) {
+    const isAdmin = user.role === Role.ADMIN;
+    await this.goodsService.remove(id, user._id.toString(), isAdmin);
+    return { message: 'Goods deleted successfully' };
+  }
+}
+backend/src/goods/goods.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { GoodsService } from './goods.service';
+import { GoodsController } from './goods.controller';
+import { Goods, GoodsSchema } from './schemas/goods.schema';
+import { VendorsModule } from '../vendors/vendors.module';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Goods.name, schema: GoodsSchema }]),
+    VendorsModule,
+  ],
+  controllers: [GoodsController],
+  providers: [GoodsService],
+  exports: [GoodsService],
+})
+export class GoodsModule {}
+backend/src/admin/dto/admin-action.dto.ts
+TypeScript
+
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { VendorStatus } from '../../vendors/schemas/vendor.schema';
+
+export class UpdateGoodsStatusDto {
+  @IsEnum(GoodsStatus)
+  status: GoodsStatus;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+export class UpdateVendorStatusDto {
+  @IsEnum(VendorStatus)
+  status: VendorStatus;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+backend/src/admin/admin.service.ts
+TypeScript
+
+import { Injectable } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { VendorsService } from '../vendors/vendors.service';
+import { GoodsService } from '../goods/goods.service';
+import { Role } from '../common/enums/role.enum';
+import { VendorStatus } from '../vendors/schemas/vendor.schema';
+import { GoodsStatus } from '../common/enums/goods-status.enum';
+
+@Injectable()
+export class AdminService {
+  constructor(
+    private usersService: UsersService,
+    private vendorsService: VendorsService,
+    private goodsService: GoodsService,
+  ) {}
+
+  async getDashboardStats() {
+    const [usersData, vendorsData, goodsStats] = await Promise.all([
+      this.usersService.findAll(1, 1),
+      this.vendorsService.findAll(1, 1),
+      this.goodsService.getStats(),
+    ]);
+
+    const pendingVendors = await this.vendorsService.findAll(
+      1,
+      1,
+      VendorStatus.PENDING,
+    );
+
+    return {
+      users: {
+        total: usersData.total,
+      },
+      vendors: {
+        total: vendorsData.total,
+        pending: pendingVendors.total,
+      },
+      goods: goodsStats,
+    };
+  }
+
+  async verifyVendor(vendorId: string, adminId: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.VERIFIED,
+    });
+  }
+
+  async rejectVendor(vendorId: string, adminId: string, reason: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.REJECTED,
+      rejectionReason: reason,
+    });
+  }
+
+  async suspendVendor(vendorId: string, adminId: string, reason: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.SUSPENDED,
+      rejectionReason: reason,
+    });
+  }
+
+  async approveGoods(goodsId: string, adminId: string) {
+    return this.goodsService.updateStatus(goodsId, adminId, GoodsStatus.APPROVED);
+  }
+
+  async flagGoods(goodsId: string, adminId: string, reason: string) {
+    return this.goodsService.updateStatus(
+      goodsId,
+      adminId,
+      GoodsStatus.FLAGGED,
+      reason,
+    );
+  }
+
+  async dropGoods(goodsId: string, adminId: string, reason: string) {
+    return this.goodsService.updateStatus(
+      goodsId,
+      adminId,
+      GoodsStatus.DROPPED,
+      reason,
+    );
+  }
+
+  async getPendingVendors(page: number = 1, limit: number = 10) {
+    return this.vendorsService.findAll(page, limit, VendorStatus.PENDING);
+  }
+
+  async getPendingGoods(page: number = 1, limit: number = 10) {
+    return this.goodsService.findAll(
+      { page, limit, status: GoodsStatus.PENDING },
+      false,
+    );
+  }
+}
+backend/src/admin/admin.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+import { UpdateGoodsStatusDto, UpdateVendorStatusDto } from './dto/admin-action.dto';
+
+@Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  @Get('dashboard')
+  async getDashboardStats() {
+    return this.adminService.getDashboardStats();
+  }
+
+  @Get('vendors/pending')
+  async getPendingVendors(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.adminService.getPendingVendors(page, limit);
+  }
+
+  @Patch('vendors/:id/verify')
+  async verifyVendor(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.adminService.verifyVendor(id, user._id.toString());
+  }
+
+  @Patch('vendors/:id/reject')
+  async rejectVendor(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.rejectVendor(id, user._id.toString(), reason);
+  }
+
+  @Patch('vendors/:id/suspend')
+  async suspendVendor(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.suspendVendor(id, user._id.toString(), reason);
+  }
+
+  @Get('goods/pending')
+  async getPendingGoods(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.adminService.getPendingGoods(page, limit);
+  }
+
+  @Patch('goods/:id/approve')
+  async approveGoods(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.adminService.approveGoods(id, user._id.toString());
+  }
+
+  @Patch('goods/:id/flag')
+  async flagGoods(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.flagGoods(id, user._id.toString(), reason);
+  }
+
+  @Patch('goods/:id/drop')
+  async dropGoods(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.dropGoods(id, user._id.toString(), reason);
+  }
+}
+backend/src/admin/admin.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { AdminController } from './admin.controller';
+import { UsersModule } from '../users/users.module';
+import { VendorsModule } from '../vendors/vendors.module';
+import { GoodsModule } from '../goods/goods.module';
+
+@Module({
+  imports: [UsersModule, VendorsModule, GoodsModule],
+  controllers: [AdminController],
+  providers: [AdminService],
+})
+export class AdminModule {}
+backend/src/uploads/uploads.service.ts
+TypeScript
+
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { join } from 'path';
+
+@Injectable()
+export class UploadsService {
+  private uploadPath: string;
+
+  constructor(private configService: ConfigService) {
+    this.uploadPath = this.configService.get<string>('UPLOAD_DEST') || './uploads';
+    this.ensureUploadDirectory();
+  }
+
+  private ensureUploadDirectory() {
+    const directories = ['', 'goods', 'vendors', 'avatars'];
+    directories.forEach((dir) => {
+      const path = join(this.uploadPath, dir);
+      if (!existsSync(path)) {
+        mkdirSync(path, { recursive: true });
+      }
+    });
+  }
+
+  getFilePath(filename: string): string {
+    return `${this.configService.get('API_PREFIX')}/uploads/${filename}`;
+  }
+
+  async deleteFile(filename: string): Promise<void> {
+    const filePath = join(this.uploadPath, filename);
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+  }
+
+  validateFile(file: Express.Multer.File): void {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = this.configService.get<number>('MAX_FILE_SIZE') || 5 * 1024 * 1024;
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Invalid file type. Only images are allowed.');
+    }
+
+    if (file.size > maxSize) {
+      throw new BadRequestException(`File size exceeds ${maxSize / 1024 / 1024}MB limit.`);
+    }
+  }
+}
+backend/src/uploads/uploads.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'crypto';
+import { UploadsService } from './uploads.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+const storage = diskStorage({
+  destination: (req, file, cb) => {
+    const folder = req.query.folder || 'goods';
+    cb(null, `./uploads/${folder}`);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestException('Invalid file type'), false);
+  }
+};
+
+@Controller('uploads')
+@UseGuards(JwtAuthGuard)
+export class UploadsController {
+  constructor(private readonly uploadsService: UploadsService) {}
+
+  @Post('single')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage,
+      fileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadSingle(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return {
+      filename: file.filename,
+      path: `/uploads/${file.filename}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    };
+  }
+
+  @Post('multiple')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage,
+      fileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadMultiple(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
+
+    return files.map((file) => ({
+      filename: file.filename,
+      path: `/uploads/${file.filename}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    }));
+  }
+
+  @Delete(':filename')
+  async deleteFile(@Param('filename') filename: string) {
+    await this.uploadsService.deleteFile(filename);
+    return { message: 'File deleted successfully' };
+  }
+}
+backend/src/uploads/uploads.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { UploadsController } from './uploads.controller';
+import { UploadsService } from './uploads.service';
+
+@Module({
+  controllers: [UploadsController],
+  providers: [UploadsService],
+  exports: [UploadsService],
+})
+export class UploadsModule {}
+🎨 FRONTEND IMPLEMENTATION
+Step 2: Initialize Frontend Project
+Bash
+
+cd ../
+npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir
+cd frontend
+
+# Install dependencies
+npm install axios react-hook-form @hookform/resolvers zod
+npm install zustand
+npm install react-hot-toast
+npm install lucide-react
+npm install clsx tailwind-merge
+npm install date-fns
+frontend/package.json
+JSON
+
+{
+  "name": "marketplace-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.3.2",
+    "axios": "^1.6.2",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
+    "next": "14.0.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.49.0",
+    "react-hot-toast": "^2.4.1",
+    "tailwind-merge": "^2.1.0",
+    "zod": "^3.22.4",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  }
+}
+frontend/.env.local
+env
+
+NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+NEXT_PUBLIC_UPLOADS_URL=http://localhost:3001/uploads
+frontend/.env.example
+env
+
+NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+NEXT_PUBLIC_UPLOADS_URL=http://localhost:3001/uploads
+frontend/tailwind.config.js
+JavaScript
+
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+frontend/next.config.js
+JavaScript
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/uploads/**',
+      },
+    ],
+  },
+};
+
+module.exports = nextConfig;
+frontend/src/types/user.types.ts
+TypeScript
+
+export enum Role {
+  USER = 'user',
+  VENDOR = 'vendor',
+  ADMIN = 'admin',
+}
+
+export interface User {
+  _id: string;
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName?: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  role: Role;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterCredentials {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+frontend/src/types/vendor.types.ts
+TypeScript
+
+import { User } from './user.types';
+
+export enum VendorStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
+  SUSPENDED = 'suspended',
+}
+
+export interface Vendor {
+  _id: string;
+  id: string;
+  user: User;
+  businessName: string;
+  businessDescription: string;
+  businessAddress?: string;
+  businessPhone?: string;
+  businessEmail?: string;
+  logo?: string;
+  documents: string[];
+  status: VendorStatus;
+  verifiedAt?: string;
+  verifiedBy?: User;
+  rejectionReason?: string;
+  totalGoods: number;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateVendorData {
+  businessName: string;
+  businessDescription: string;
+  businessAddress?: string;
+  businessPhone?: string;
+  businessEmail?: string;
+}
+frontend/src/types/goods.types.ts
+TypeScript
+
+import { User } from './user.types';
+import { Vendor } from './vendor.types';
+
+export enum GoodsStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  FLAGGED = 'flagged',
+  DROPPED = 'dropped',
+}
+
+export enum GoodsType {
+  SALE = 'sale',
+  LEASE = 'lease',
+}
+
+export interface Goods {
+  _id: string;
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: GoodsType;
+  category: string;
+  images: string[];
+  status: GoodsStatus;
+  vendor: Vendor;
+  createdBy: User;
+  location?: string;
+  specifications?: Record<string, any>;
+  views: number;
+  flagReason?: string;
+  flaggedBy?: User;
+  flaggedAt?: string;
+  approvedAt?: string;
+  approvedBy?: User;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGoodsData {
+  title: string;
+  description: string;
+  price: number;
+  type: GoodsType;
+  category?: string;
+  images?: string[];
+  location?: string;
+  specifications?: Record<string, any>;
+}
+
+export interface GoodsQuery {
+  page?: number;
+  limit?: number;
+  status?: GoodsStatus;
+  type?: GoodsType;
+  category?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  vendorId?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+frontend/src/types/api.types.ts
+TypeScript
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  timestamp: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  pages: number;
+}
+
+export interface ApiError {
+  success: false;
+  statusCode: number;
+  message: string;
+  errors?: any;
+  timestamp: string;
+  path: string;
+}
+frontend/src/services/api.ts
+TypeScript
+
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
+import { ApiError } from '@/types/api.types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+class ApiService {
+  private api: AxiosInstance;
+
+  constructor() {
+    this.api = axios.create({
+      baseURL: API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    this.setupInterceptors();
+  }
+
+  private setupInterceptors() {
+    // Request interceptor
+    this.api.interceptors.request.use(
+      (config) => {
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('accessToken');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Response interceptor
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error: AxiosError<ApiError>) => {
+        if (error.response?.status === 401) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.get<{ data: T }>(url, config);
+    return response.data.data;
+  }
+
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.post<{ data: T }>(url, data, config);
+    return response.data.data;
+  }
+
+  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.patch<{ data: T }>(url, data, config);
+    return response.data.data;
+  }
+
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.put<{ data: T }>(url, data, config);
+    return response.data.data;
+  }
+
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.api.delete<{ data: T }>(url, config);
+    return response.data.data;
+  }
+
+  async uploadFile(file: File, folder: string = 'goods'): Promise<{ filename: string; path: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await this.api.post(`/uploads/single?folder=${folder}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data.data;
+  }
+
+  async uploadFiles(files: File[], folder: string = 'goods'): Promise<{ filename: string; path: string }[]> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+
+    const response = await this.api.post(`/uploads/multiple?folder=${folder}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data.data;
+  }
+}
+
+export const api = new ApiService();
+export default api;
+frontend/src/services/auth.service.ts
+TypeScript
+
+import api from './api';
+import { AuthResponse, LoginCredentials, RegisterCredentials, User } from '@/types/user.types';
+
+export const authService = {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/login', credentials);
+    this.setSession(response);
+    return response;
+  },
+
+  async register(data: RegisterCredentials): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    this.setSession(response);
+    return response;
+  },
+
+  async getMe(): Promise<User> {
+    return api.get<User>('/auth/me');
+  },
+
+  setSession(authResponse: AuthResponse): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', authResponse.accessToken);
+      localStorage.setItem('user', JSON.stringify(authResponse.user));
+    }
+  },
+
+  getToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken');
+    }
+    return null;
+  },
+
+  getUser(): User | null {
+    if (typeof window !== 'undefined') {
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : null;
+    }
+    return null;
+  },
+
+  logout(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+    }
+  },
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  },
+};
+frontend/src/services/goods.service.ts
+TypeScript
+
+import api from './api';
+import { Goods, CreateGoodsData, GoodsQuery } from '@/types/goods.types';
+
+interface GoodsResponse {
+  goods: Goods[];
+  total: number;
+  pages: number;
+}
+
+export const goodsService = {
+  async getAll(query?: GoodsQuery): Promise<GoodsResponse> {
+    const params = new URLSearchParams();
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    return api.get<GoodsResponse>(`/goods?${params.toString()}`);
+  },
+
+  async getById(id: string): Promise<Goods> {
+    return api.get<Goods>(`/goods/${id}`);
+  },
+
+  async create(data: CreateGoodsData): Promise<Goods> {
+    return api.post<Goods>('/goods', data);
+  },
+
+  async update(id: string, data: Partial<CreateGoodsData>): Promise<Goods> {
+    return api.patch<Goods>(`/goods/${id}`, data);
+  },
+
+  async delete(id: string): Promise<void> {
+    return api.delete(`/goods/${id}`);
+  },
+
+  async getCategories(): Promise<string[]> {
+    return api.get<string[]>('/goods/categories');
+  },
+
+  async getMyGoods(query?: GoodsQuery): Promise<GoodsResponse> {
+    const params = new URLSearchParams();
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    return api.get<GoodsResponse>(`/goods/my-goods?${params.toString()}`);
+  },
+};
+frontend/src/services/vendor.service.ts
+TypeScript
+
+import api from './api';
+import { Vendor, CreateVendorData, VendorStatus } from '@/types/vendor.types';
+
+interface VendorsResponse {
+  vendors: Vendor[];
+  total: number;
+  pages: number;
+}
+
+export const vendorService = {
+  async getAll(
+    page?: number,
+    limit?: number,
+    status?: VendorStatus,
+    search?: string
+  ): Promise<VendorsResponse> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
+    return api.get<VendorsResponse>(`/vendors?${params.toString()}`);
+  },
+
+  async getById(id: string): Promise<Vendor> {
+    return api.get<Vendor>(`/vendors/${id}`);
+  },
+
+  async getMyProfile(): Promise<Vendor | null> {
+    try {
+      return await api.get<Vendor>('/vendors/my-profile');
+    } catch {
+      return null;
+    }
+  },
+
+  async create(data: CreateVendorData): Promise<Vendor> {
+    return api.post<Vendor>('/vendors', data);
+  },
+
+  async update(id: string, data: Partial<CreateVendorData>): Promise<Vendor> {
+    return api.patch<Vendor>(`/vendors/${id}`, data);
+  },
+
+  async delete(id: string): Promise<void> {
+    return api.delete(`/vendors/${id}`);
+  },
+};
+frontend/src/services/admin.service.ts
+TypeScript
+
+import api from './api';
+import { Vendor } from '@/types/vendor.types';
+import { Goods } from '@/types/goods.types';
+
+interface DashboardStats {
+  users: { total: number };
+  vendors: { total: number; pending: number };
+  goods: {
+    total: number;
+    pending: number;
+    approved: number;
+    flagged: number;
+    dropped: number;
+  };
+}
+
+interface VendorsResponse {
+  vendors: Vendor[];
+  total: number;
+  pages: number;
+}
+
+interface GoodsResponse {
+  goods: Goods[];
+  total: number;
+  pages: number;
+}
+
+export const adminService = {
+  async getDashboardStats(): Promise<DashboardStats> {
+    return api.get<DashboardStats>('/admin/dashboard');
+  },
+
+  async getPendingVendors(page?: number, limit?: number): Promise<VendorsResponse> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
+    return api.get<VendorsResponse>(`/admin/vendors/pending?${params.toString()}`);
+  },
+
+  async verifyVendor(vendorId: string): Promise<Vendor> {
+    return api.patch<Vendor>(`/admin/vendors/${vendorId}/verify`);
+  },
+
+  async rejectVendor(vendorId: string, reason: string): Promise<Vendor> {
+    return api.patch<Vendor>(`/admin/vendors/${vendorId}/reject`, { reason });
+  },
+
+  async suspendVendor(vendorId: string, reason: string): Promise<Vendor> {
+    return api.patch<Vendor>(`/admin/vendors/${vendorId}/suspend`, { reason });
+  },
+
+  async getPendingGoods(page?: number, limit?: number): Promise<GoodsResponse> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
+    return api.get<GoodsResponse>(`/admin/goods/pending?${params.toString()}`);
+  },
+
+  async approveGoods(goodsId: string): Promise<Goods> {
+    return api.patch<Goods>(`/admin/goods/${goodsId}/approve`);
+  },
+
+  async flagGoods(goodsId: string, reason: string): Promise<Goods> {
+    return api.patch<Goods>(`/admin/goods/${goodsId}/flag`, { reason });
+  },
+
+  async dropGoods(goodsId: string, reason: string): Promise<Goods> {
+    return api.patch<Goods>(`/admin/goods/${goodsId}/drop`, { reason });
+  },
+
+  async getAllGoods(page?: number, limit?: number): Promise<GoodsResponse> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
+    return api.get<GoodsResponse>(`/goods/admin?${params.toString()}`);
+  },
+};
+frontend/src/contexts/AuthContext.tsx
+TypeScript
+
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Role } from '@/types/user.types';
+import { authService } from '@/services/auth.service';
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }) => Promise<void>;
+  logout: () => void;
+  isAdmin: boolean;
+  isVendor: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const storedUser = authService.getUser();
+        const token = authService.getToken();
+
+        if (storedUser && token) {
+          // Verify token by fetching user
+          const currentUser = await authService.getMe();
+          setUser(currentUser);
+        }
+      } catch (error) {
+        authService.logout();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    const response = await authService.login({ email, password });
+    setUser(response.user);
+  };
+
+  const register = async (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }) => {
+    const response = await authService.register(data);
+    setUser(response.user);
+  };
+
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+  };
+
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    login,
+    register,
+    logout,
+    isAdmin: user?.role === Role.ADMIN,
+    isVendor: user?.role === Role.VENDOR,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+frontend/src/utils/helpers.ts
+TypeScript
+
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(price);
+}
+
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(date));
+}
+
+export function getImageUrl(path: string): string {
+  if (path.startsWith('http')) {
+    return path;
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_UPLOADS_URL || 'http://localhost:3001';
+  return `${baseUrl}${path}`;
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+frontend/src/utils/constants.ts
+TypeScript
+
+export const GOODS_TYPES = [
+  { value: 'sale', label: 'For Sale' },
+  { value: 'lease', label: 'For Lease' },
+];
+
+export const GOODS_STATUSES = [
+  { value: 'pending', label: 'Pending', color: 'yellow' },
+  { value: 'approved', label: 'Approved', color: 'green' },
+  { value: 'flagged', label: 'Flagged', color: 'orange' },
+  { value: 'dropped', label: 'Dropped', color: 'red' },
+];
+
+export const VENDOR_STATUSES = [
+  { value: 'pending', label: 'Pending', color: 'yellow' },
+  { value: 'verified', label: 'Verified', color: 'green' },
+  { value: 'rejected', label: 'Rejected', color: 'red' },
+  { value: 'suspended', label: 'Suspended', color: 'gray' },
+];
+
+export const DEFAULT_CATEGORIES = [
+  'Electronics',
+  'Vehicles',
+  'Real Estate',
+  'Fashion',
+  'Home & Garden',
+  'Sports',
+  'Books',
+  'Services',
+  'Other',
+];
+frontend/src/components/ui/Button.tsx
+TypeScript
+
+import React, { ButtonHTMLAttributes, forwardRef } from 'react';
+import { cn } from '@/utils/helpers';
+import { Loader2 } from 'lucide-react';
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+}
+
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
+    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+
+    const variants = {
+      primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
+      secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
+      outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500',
+      ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
+      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    };
+
+    const sizes = {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-base',
+      lg: 'px-6 py-3 text-lg',
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        disabled={disabled || isLoading}
+        {...props}
+      >
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {children}
+      </button>
+    );
+  }
+);
+
+Button.displayName = 'Button';
+
+export default Button;
+frontend/src/components/ui/Input.tsx
+TypeScript
+
+import React, { InputHTMLAttributes, forwardRef } from 'react';
+import { cn } from '@/utils/helpers';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+}
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, label, error, helperText, type = 'text', id, ...props }, ref) => {
+    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+
+    return (
+      <div className="w-full">
+        {label && (
+          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+          </label>
+        )}
+        <input
+          ref={ref}
+          id={inputId}
+          type={type}
+          className={cn(
+            'w-full px-4 py-2 border rounded-lg transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
+            error
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 hover:border-gray-400',
+            className
+          )}
+          {...props}
+        />
+        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+      </div>
+    );
+  }
+);
+
+Input.displayName = 'Input';
+
+export default Input;
+frontend/src/components/ui/Card.tsx
+TypeScript
+
+import React, { HTMLAttributes } from 'react';
+import { cn } from '@/utils/helpers';
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'outlined' | 'elevated';
+}
+
+export function Card({ className, variant = 'default', children, ...props }: CardProps) {
+  const variants = {
+    default: 'bg-white border border-gray-200',
+    outlined: 'bg-transparent border-2 border-gray-300',
+    elevated: 'bg-white shadow-lg',
+  };
+
+  return (
+    <div className={cn('rounded-xl overflow-hidden', variants[variant], className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('px-6 py-4 border-b border-gray-200', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardContent({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('px-6 py-4', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardFooter({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('px-6 py-4 border-t border-gray-200 bg-gray-50', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+frontend/src/components/ui/Modal.tsx
+TypeScript
+
+'use client';
+
+import React, { ReactNode, useEffect } from 'react';
+import { X } from 'lucide-react';
+import { cn } from '@/utils/helpers';
+import Button from './Button';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+}
+
+export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const sizes = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
+
+        {/* Modal */}
+        <div className={cn('relative w-full bg-white rounded-xl shadow-xl', sizes[size])}>
+          {/* Header */}
+          {title && (
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
+          {/* Content */}
+          <div className="px-6 py-4">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+frontend/src/components/ui/Loading.tsx
+TypeScript
+
+import React from 'react';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/utils/helpers';
+
+interface LoadingProps {
+  size?: 'sm' | 'md' | 'lg';
+  text?: string;
+  fullScreen?: boolean;
+}
+
+export default function Loading({ size = 'md', text, fullScreen = false }: LoadingProps) {
+  const sizes = {
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+  };
+
+  const content = (
+    <div className="flex flex-col items-center justify-center gap-3">
+      <Loader2 className={cn('animate-spin text-primary-600', sizes[size])} />
+      {text && <p className="text-gray-600">{text}</p>}
+    </div>
+  );
+
+  if (fullScreen) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 z-50">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
+}
+frontend/src/components/ui/Alert.tsx
+TypeScript
+
+import React, { ReactNode } from 'react';
+import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react';
+import { cn } from '@/utils/helpers';
+
+interface AlertProps {
+  type?: 'info' | 'success' | 'warning' | 'error';
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}
+
+export default function Alert({ type = 'info', title, children, className }: AlertProps) {
+  const styles = {
+    info: {
+      container: 'bg-blue-50 border-blue-200 text-blue-800',
+      icon: <Info className="h-5 w-5 text-blue-500" />,
+    },
+    success: {
+      container: 'bg-green-50 border-green-200 text-green-800',
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+    },
+    warning: {
+      container: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+      icon: <AlertCircle className="h-5 w-5 text-yellow-500" />,
+    },
+    error: {
+      container: 'bg-red-50 border-red-200 text-red-800',
+      icon: <XCircle className="h-5 w-5 text-red-500" />,
+    },
+  };
+
+  return (
+    <div className={cn('border rounded-lg p-4', styles[type].container, className)}>
+      <div className="flex gap-3">
+        {styles[type].icon}
+        <div>
+          {title && <h4 className="font-medium mb-1">{title}</h4>}
+          <div className="text-sm">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+frontend/src/components/layout/Header.tsx
+TypeScript
+
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import Button from '@/components/ui/Button';
+import { LogOut, User, ShoppingBag, Shield } from 'lucide-react';
+
+export default function Header() {
+  const { user, isAuthenticated, logout, isAdmin, isVendor } = useAuth();
+
+  return (
+    <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <ShoppingBag className="h-8 w-8 text-primary-600" />
+            <span className="text-xl font-bold text-gray-900">Marketplace</span>
+          </Link>
+
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/goods" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Browse Goods
+            </Link>
+            {isAuthenticated && (
+              <>
+                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+                  Dashboard
+                </Link>
+                {isVendor && (
+                  <Link href="/add-goods" className="text-gray-600 hover:text-gray-900 transition-colors">
+                    Add Goods
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link href="/admin" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1">
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
+              </>
+            )}
+          </nav>
+
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-4">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-gray-500" />
+                  <span className="text-sm text-gray-700">{user?.firstName}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm">Login</Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm">Register</Button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+frontend/src/components/layout/Footer.tsx
+TypeScript
+
+import React from 'react';
+import Link from 'next/link';
+import { ShoppingBag } from 'lucide-react';
+
+export default function Footer() {
+  return (
+    <footer className="bg-gray-900 text-gray-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <ShoppingBag className="h-8 w-8 text-primary-500" />
+              <span className="text-xl font-bold text-white">Marketplace</span>
+            </div>
+            <p className="text-gray-400 max-w-md">
+              Your trusted platform for buying and leasing quality goods from verified vendors.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2">
+              <li><Link href="/goods" className="hover:text-white transition-colors">Browse Goods</Link></li>
+              <li><Link href="/register" className="hover:text-white transition-colors">Become a Vendor</Link></li>
+              <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <ul className="space-y-2">
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+          <p>&copy; {new Date().getFullYear()} Marketplace. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+frontend/src/components/goods/GoodsCard.tsx
+TypeScript
+
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Goods, GoodsType } from '@/types/goods.types';
+import { Card, CardContent } from '@/components/ui/Card';
+import { formatPrice, getImageUrl, truncateText } from '@/utils/helpers';
+import { MapPin, Eye, Tag } from 'lucide-react';
+
+interface GoodsCardProps {
+  goods: Goods;
+}
+
+export default function GoodsCard({ goods }: GoodsCardProps) {
+  const imageUrl = goods.images?.[0] ? getImageUrl(goods.images[0]) : '/images/placeholder.png';
+
+  return (
+    <Link href={`/goods/${goods._id}`}>
+      <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+        <div className="relative h-48 bg-gray-100">
+          <Image
+            src={imageUrl}
+            alt={goods.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+          <div className="absolute top-2 right-2">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              goods.type === GoodsType.SALE 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {goods.type === GoodsType.SALE ? 'For Sale' : 'For Lease'}
+            </span>
+          </div>
+        </div>
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-gray-900 mb-1">{truncateText(goods.title, 50)}</h3>
+          <p className="text-sm text-gray-600 mb-3">{truncateText(goods.description, 80)}</p>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-primary-600">
+              {formatPrice(goods.price)}
+              {goods.type === GoodsType.LEASE && <span className="text-sm font-normal">/month</span>}
+            </span>
+            <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <Eye className="h-4 w-4" />
+              {goods.views}
+            </div>
+          </div>
+
+          {goods.location && (
+            <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
+              <MapPin className="h-4 w-4" />
+              {goods.location}
+            </div>
+          )}
+
+          {goods.category && (
+            <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
+              <Tag className="h-4 w-4" />
+              {goods.category}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}

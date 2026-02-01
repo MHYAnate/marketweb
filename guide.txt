@@ -1,0 +1,198 @@
+marketplace-app/
+├── backend/
+│   ├── src/
+│   │   ├── auth/
+│   │   │   ├── decorators/
+│   │   │   │   ├── current-user.decorator.ts
+│   │   │   │   ├── public.decorator.ts
+│   │   │   │   └── roles.decorator.ts
+│   │   │   ├── dto/
+│   │   │   │   ├── login.dto.ts
+│   │   │   │   └── register.dto.ts
+│   │   │   ├── guards/
+│   │   │   │   ├── jwt-auth.guard.ts
+│   │   │   │   └── roles.guard.ts
+│   │   │   ├── strategies/
+│   │   │   │   └── jwt.strategy.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.module.ts
+│   │   │   └── auth.service.ts
+│   │   │
+│   │   ├── users/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-user.dto.ts
+│   │   │   │   └── update-user.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── user.schema.ts
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.module.ts
+│   │   │   └── users.service.ts
+│   │   │
+│   │   ├── vendors/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-vendor.dto.ts
+│   │   │   │   └── update-vendor.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── vendor.schema.ts
+│   │   │   ├── vendors.controller.ts
+│   │   │   ├── vendors.module.ts
+│   │   │   └── vendors.service.ts
+│   │   │
+│   │   ├── goods/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-goods.dto.ts
+│   │   │   │   ├── update-goods.dto.ts
+│   │   │   │   └── query-goods.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── goods.schema.ts
+│   │   │   ├── goods.controller.ts
+│   │   │   ├── goods.module.ts
+│   │   │   └── goods.service.ts
+│   │   │
+│   │   ├── admin/
+│   │   │   ├── dto/
+│   │   │   │   └── admin-action.dto.ts
+│   │   │   ├── admin.controller.ts
+│   │   │   ├── admin.module.ts
+│   │   │   └── admin.service.ts
+│   │   │
+│   │   ├── uploads/
+│   │   │   ├── uploads.controller.ts
+│   │   │   ├── uploads.module.ts
+│   │   │   └── uploads.service.ts
+│   │   │
+│   │   ├── common/
+│   │   │   ├── enums/
+│   │   │   │   ├── role.enum.ts
+│   │   │   │   ├── goods-status.enum.ts
+│   │   │   │   └── goods-type.enum.ts
+│   │   │   ├── filters/
+│   │   │   │   └── http-exception.filter.ts
+│   │   │   ├── interceptors/
+│   │   │   │   └── transform.interceptor.ts
+│   │   │   └── pipes/
+│   │   │       └── validation.pipe.ts
+│   │   │
+│   │   ├── config/
+│   │   │   ├── database.config.ts
+│   │   │   └── jwt.config.ts
+│   │   │
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   │
+│   ├── uploads/
+│   │   └── .gitkeep
+│   ├── test/
+│   │   └── app.e2e-spec.ts
+│   ├── .env
+│   ├── .env.example
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tsconfig.build.json
+│   └── nest-cli.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── (auth)/
+│   │   │   │   ├── login/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── register/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   ├── (dashboard)/
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── my-goods/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── add-goods/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── vendor-profile/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   ├── (admin)/
+│   │   │   │   ├── admin/
+│   │   │   │   │   ├── vendors/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── goods/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── layout.tsx
+│   │   │   ├── goods/
+│   │   │   │   ├── [id]/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── globals.css
+│   │   │
+│   │   ├── components/
+│   │   │   ├── ui/
+│   │   │   │   ├── Button.tsx
+│   │   │   │   ├── Input.tsx
+│   │   │   │   ├── Card.tsx
+│   │   │   │   ├── Modal.tsx
+│   │   │   │   ├── Loading.tsx
+│   │   │   │   └── Alert.tsx
+│   │   │   ├── layout/
+│   │   │   │   ├── Header.tsx
+│   │   │   │   ├── Footer.tsx
+│   │   │   │   ├── Sidebar.tsx
+│   │   │   │   └── Navbar.tsx
+│   │   │   ├── goods/
+│   │   │   │   ├── GoodsCard.tsx
+│   │   │   │   ├── GoodsList.tsx
+│   │   │   │   ├── GoodsForm.tsx
+│   │   │   │   └── GoodsFilter.tsx
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginForm.tsx
+│   │   │   │   ├── RegisterForm.tsx
+│   │   │   │   └── ProtectedRoute.tsx
+│   │   │   └── admin/
+│   │   │       ├── VendorTable.tsx
+│   │   │       └── GoodsTable.tsx
+│   │   │
+│   │   ├── contexts/
+│   │   │   └── AuthContext.tsx
+│   │   │
+│   │   ├── hooks/
+│   │   │   ├── useAuth.ts
+│   │   │   ├── useGoods.ts
+│   │   │   └── useApi.ts
+│   │   │
+│   │   ├── services/
+│   │   │   ├── api.ts
+│   │   │   ├── auth.service.ts
+│   │   │   ├── goods.service.ts
+│   │   │   ├── vendor.service.ts
+│   │   │   └── admin.service.ts
+│   │   │
+│   │   ├── types/
+│   │   │   ├── user.types.ts
+│   │   │   ├── goods.types.ts
+│   │   │   ├── vendor.types.ts
+│   │   │   └── api.types.ts
+│   │   │
+│   │   └── utils/
+│   │       ├── constants.ts
+│   │       ├── helpers.ts
+│   │       └── validators.ts
+│   │
+│   ├── public/
+│   │   ├── images/
+│   │   │   └── logo.png
+│   │   └── favicon.ico
+│   │
+│   ├── .env.local
+│   ├── .env.example
+│   ├── package.json
+│   ├── next.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── tsconfig.json
+│
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+
+write out a detailed discription of a nestjs, mongodb with jwt and nextjs and react application which users can register and upload pictures pf goods for sale or lease and admin could verify vendors and flag or drop the goods posted by vendors while users can view goods either their are registered or not write out the detailed steps full detailed folder structure with complete files, package.json, and a .env files write the detailed step by step propmt to develop this app for a junior developer that what to use this application to learn nestjs and mongodb for the within two days and prep for aninterview based on this stack

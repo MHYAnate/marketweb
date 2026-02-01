@@ -1,0 +1,48 @@
+# Navigate to market folder
+cd C:\Users\Mohammed Hayatudeen\Documents\market
+
+# Create root .gitignore
+@"
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build
+backend/dist/
+frontend/.next/
+frontend/out/
+
+# Environment
+.env
+.env.local
+**/.env
+**/.env.local
+!.env.example
+!**/.env.example
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+**/coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Misc
+*.tsbuildinfo
+.cache/
+.vercel/
+.turbo/
+"@ | Out-File -FilePath ".gitignore" -Encoding utf8
