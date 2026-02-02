@@ -1,0 +1,2681 @@
+Complete Marketplace Application - NestJS, MongoDB, Next.js
+📚 Learning Roadmap for Junior Developers (2 Days)
+Day 1: Backend Development (NestJS + MongoDB)
+Morning: Setup, Authentication, User Module
+Afternoon: Vendor Module, Goods Module, File Upload
+Day 2: Frontend Development (Next.js + React)
+Morning: Setup, Authentication UI, API Integration
+Afternoon: Goods Display, Admin Panel, Testing
+📁 Complete Project Structure
+text
+
+marketplace-app/
+├── backend/
+│   ├── src/
+│   │   ├── auth/
+│   │   │   ├── decorators/
+│   │   │   │   ├── current-user.decorator.ts
+│   │   │   │   ├── public.decorator.ts
+│   │   │   │   └── roles.decorator.ts
+│   │   │   ├── dto/
+│   │   │   │   ├── login.dto.ts
+│   │   │   │   └── register.dto.ts
+│   │   │   ├── guards/
+│   │   │   │   ├── jwt-auth.guard.ts
+│   │   │   │   └── roles.guard.ts
+│   │   │   ├── strategies/
+│   │   │   │   └── jwt.strategy.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.module.ts
+│   │   │   └── auth.service.ts
+│   │   │
+│   │   ├── users/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-user.dto.ts
+│   │   │   │   └── update-user.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── user.schema.ts
+│   │   │   ├── users.controller.ts
+│   │   │   ├── users.module.ts
+│   │   │   └── users.service.ts
+│   │   │
+│   │   ├── vendors/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-vendor.dto.ts
+│   │   │   │   └── update-vendor.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── vendor.schema.ts
+│   │   │   ├── vendors.controller.ts
+│   │   │   ├── vendors.module.ts
+│   │   │   └── vendors.service.ts
+│   │   │
+│   │   ├── goods/
+│   │   │   ├── dto/
+│   │   │   │   ├── create-goods.dto.ts
+│   │   │   │   ├── update-goods.dto.ts
+│   │   │   │   └── query-goods.dto.ts
+│   │   │   ├── schemas/
+│   │   │   │   └── goods.schema.ts
+│   │   │   ├── goods.controller.ts
+│   │   │   ├── goods.module.ts
+│   │   │   └── goods.service.ts
+│   │   │
+│   │   ├── admin/
+│   │   │   ├── dto/
+│   │   │   │   └── admin-action.dto.ts
+│   │   │   ├── admin.controller.ts
+│   │   │   ├── admin.module.ts
+│   │   │   └── admin.service.ts
+│   │   │
+│   │   ├── uploads/
+│   │   │   ├── uploads.controller.ts
+│   │   │   ├── uploads.module.ts
+│   │   │   └── uploads.service.ts
+│   │   │
+│   │   ├── common/
+│   │   │   ├── enums/
+│   │   │   │   ├── role.enum.ts
+│   │   │   │   ├── goods-status.enum.ts
+│   │   │   │   └── goods-type.enum.ts
+│   │   │   ├── filters/
+│   │   │   │   └── http-exception.filter.ts
+│   │   │   ├── interceptors/
+│   │   │   │   └── transform.interceptor.ts
+│   │   │   └── pipes/
+│   │   │       └── validation.pipe.ts
+│   │   │
+│   │   ├── config/
+│   │   │   ├── database.config.ts
+│   │   │   └── jwt.config.ts
+│   │   │
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   │
+│   ├── uploads/
+│   │   └── .gitkeep
+│   ├── test/
+│   │   └── app.e2e-spec.ts
+│   ├── .env
+│   ├── .env.example
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tsconfig.build.json
+│   └── nest-cli.json
+├── docker-compose.yml
+├── .gitignore
+└── README.md
+🔧 BACKEND IMPLEMENTATION
+Step 1: Initialize Backend Project
+Bash
+
+# Create project directory
+mkdir marketplace-app && cd marketplace-app
+
+# Create NestJS backend
+npx @nestjs/cli new backend --package-manager npm
+cd backend
+
+# Install dependencies
+npm install @nestjs/mongoose mongoose
+npm install @nestjs/jwt @nestjs/passport passport passport-jwt
+npm install @nestjs/config
+npm install bcryptjs
+npm install class-validator class-transformer
+npm install @nestjs/platform-express multer
+npm install -D @types/passport-jwt @types/bcryptjs @types/multer
+backend/package.json
+JSON
+
+{
+  "name": "marketplace-backend",
+  "version": "1.0.0",
+  "description": "Marketplace API with NestJS and MongoDB",
+  "author": "Your Name",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed": "ts-node src/seeds/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/config": "^3.1.1",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/jwt": "^10.2.0",
+    "@nestjs/mongoose": "^10.0.2",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/serve-static": "^4.0.0",
+    "bcryptjs": "^2.4.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.0.0",
+    "@nestjs/schematics": "^10.0.0",
+    "@nestjs/testing": "^10.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.17",
+    "@types/jest": "^29.5.2",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.3.1",
+    "@types/passport-jwt": "^4.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "jest": "^29.5.0",
+    "prettier": "^3.0.0",
+    "source-map-support": "^0.5.21",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.4.3",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.1.3"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
+backend/.env
+env
+
+# Application
+NODE_ENV=development
+PORT=3001
+API_PREFIX=api/v1
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/marketplace
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-in-production-2024
+JWT_EXPIRES_IN=7d
+
+# Upload
+UPLOAD_DEST=./uploads
+MAX_FILE_SIZE=5242880
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# Admin Credentials (for seeding)
+ADMIN_EMAIL=admin@marketplace.com
+ADMIN_PASSWORD=Admin@123
+backend/.env.example
+env
+
+# Application
+NODE_ENV=development
+PORT=3001
+API_PREFIX=api/v1
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/marketplace
+
+# JWT
+JWT_SECRET=change-this-secret-key
+JWT_EXPIRES_IN=7d
+
+# Upload
+UPLOAD_DEST=./uploads
+MAX_FILE_SIZE=5242880
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3000
+
+# Admin Credentials (for seeding)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=Admin@123
+backend/tsconfig.json
+JSON
+
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
+backend/nest-cli.json
+JSON
+
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true
+  }
+}
+backend/src/main.ts
+TypeScript
+
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService);
+  
+  // Global prefix
+  const apiPrefix = configService.get<string>('API_PREFIX') || 'api/v1';
+  app.setGlobalPrefix(apiPrefix);
+  
+  // CORS
+  app.enableCors({
+    origin: configService.get<string>('FRONTEND_URL') || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+  
+  // Global pipes
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+  
+  // Global filters
+  app.useGlobalFilters(new HttpExceptionFilter());
+  
+  // Global interceptors
+  app.useGlobalInterceptors(new TransformInterceptor());
+  
+  // Static files (uploads)
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+  
+  const port = configService.get<number>('PORT') || 3001;
+  await app.listen(port);
+  
+  console.log(`🚀 Application is running on: http://localhost:${port}/${apiPrefix}`);
+}
+bootstrap();
+backend/src/app.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { VendorsModule } from './vendors/vendors.module';
+import { GoodsModule } from './goods/goods.module';
+import { AdminModule } from './admin/admin.module';
+import { UploadsModule } from './uploads/uploads.module';
+
+@Module({
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    
+    // Database
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+    
+    // Feature modules
+    AuthModule,
+    UsersModule,
+    VendorsModule,
+    GoodsModule,
+    AdminModule,
+    UploadsModule,
+  ],
+})
+export class AppModule {}
+backend/src/common/enums/role.enum.ts
+TypeScript
+
+export enum Role {
+  USER = 'user',
+  VENDOR = 'vendor',
+  ADMIN = 'admin',
+}
+backend/src/common/enums/goods-status.enum.ts
+TypeScript
+
+export enum GoodsStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  FLAGGED = 'flagged',
+  DROPPED = 'dropped',
+}
+backend/src/common/enums/goods-type.enum.ts
+TypeScript
+
+export enum GoodsType {
+  SALE = 'sale',
+  LEASE = 'lease',
+}
+backend/src/common/filters/http-exception.filter.ts
+TypeScript
+
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    let errors: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      
+      if (typeof exceptionResponse === 'string') {
+        message = exceptionResponse;
+      } else if (typeof exceptionResponse === 'object') {
+        const responseObj = exceptionResponse as any;
+        message = responseObj.message || message;
+        errors = responseObj.errors || null;
+      }
+    }
+
+    response.status(status).json({
+      success: false,
+      statusCode: status,
+      message: Array.isArray(message) ? message[0] : message,
+      errors: errors,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+backend/src/common/interceptors/transform.interceptor.ts
+TypeScript
+
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+export interface Response<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+@Injectable()
+export class TransformInterceptor<T>
+  implements NestInterceptor<T, Response<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<Response<T>> {
+    return next.handle().pipe(
+      map((data) => ({
+        success: true,
+        data: data,
+        message: 'Operation successful',
+        timestamp: new Date().toISOString(),
+      })),
+    );
+  }
+}
+backend/src/users/schemas/user.schema.ts
+TypeScript
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { Role } from '../../common/enums/role.enum';
+
+export type UserDocument = User & Document;
+
+@Schema({ timestamps: true })
+export class User {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true })
+  firstName: string;
+
+  @Prop({ required: true })
+  lastName: string;
+
+  @Prop({ required: true, unique: true, lowercase: true })
+  email: string;
+
+  @Prop({ required: true })
+  password: string;
+
+  @Prop()
+  phone?: string;
+
+  @Prop()
+  avatar?: string;
+
+  @Prop({ type: String, enum: Role, default: Role.USER })
+  role: Role;
+
+  @Prop({ default: true })
+  isActive: boolean;
+
+  @Prop()
+  lastLogin?: Date;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const UserSchema = SchemaFactory.createForClass(User);
+
+// Indexes
+UserSchema.index({ email: 1 });
+UserSchema.index({ role: 1 });
+UserSchema.index({ createdAt: -1 });
+
+// Virtual for full name
+UserSchema.virtual('fullName').get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
+
+// Ensure virtuals are included in JSON
+UserSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret.password;
+    delete ret.__v;
+    return ret;
+  },
+});
+backend/src/users/dto/create-user.dto.ts
+TypeScript
+
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+  Matches,
+} from 'class-validator';
+import { Role } from '../../common/enums/role.enum';
+
+export class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    {
+      message:
+        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+    },
+  )
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
+}
+backend/src/users/dto/update-user.dto.ts
+TypeScript
+
+import { PartialType, OmitType } from '@nestjs/mapped-types';
+import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { CreateUserDto } from './create-user.dto';
+
+export class UpdateUserDto extends PartialType(
+  OmitType(CreateUserDto, ['password', 'email'] as const),
+) {
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdatePasswordDto {
+  @IsString()
+  currentPassword: string;
+
+  @IsString()
+  newPassword: string;
+}
+backend/src/users/users.service.ts
+TypeScript
+
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import * as bcrypt from 'bcryptjs';
+import { User, UserDocument } from './schemas/user.schema';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto, UpdatePasswordDto } from './dto/update-user.dto';
+import { Role } from '../common/enums/role.enum';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+  ) {}
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // Check if email already exists
+    const existingUser = await this.userModel.findOne({
+      email: createUserDto.email.toLowerCase(),
+    });
+    
+    if (existingUser) {
+      throw new ConflictException('Email already registered');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
+
+    const user = new this.userModel({
+      ...createUserDto,
+      email: createUserDto.email.toLowerCase(),
+      password: hashedPassword,
+    });
+
+    return user.save();
+  }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    role?: Role,
+  ): Promise<{ users: User[]; total: number; pages: number }> {
+    const query: any = {};
+    if (role) {
+      query.role = role;
+    }
+
+    const skip = (page - 1) * limit;
+    const [users, total] = await Promise.all([
+      this.userModel.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }),
+      this.userModel.countDocuments(query),
+    ]);
+
+    return {
+      users,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string): Promise<User> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid user ID');
+    }
+
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email: email.toLowerCase() });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { $set: updateUserDto },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async updatePassword(
+    id: string,
+    updatePasswordDto: UpdatePasswordDto,
+  ): Promise<void> {
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      updatePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+  }
+
+  async updateRole(id: string, role: Role): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateLastLogin(id: string): Promise<void> {
+    await this.userModel.findByIdAndUpdate(id, { lastLogin: new Date() });
+  }
+
+  async remove(id: string): Promise<void> {
+    const result = await this.userModel.findByIdAndDelete(id);
+    if (!result) {
+      throw new NotFoundException('User not found');
+    }
+  }
+
+  async validatePassword(user: UserDocument, password: string): Promise<boolean> {
+    return bcrypt.compare(password, user.password);
+  }
+
+  // Seed admin user
+  async seedAdmin(): Promise<void> {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@marketplace.com';
+    const existingAdmin = await this.findByEmail(adminEmail);
+
+    if (!existingAdmin) {
+      await this.create({
+        firstName: 'Admin',
+        lastName: 'User',
+        email: adminEmail,
+        password: process.env.ADMIN_PASSWORD || 'Admin@123',
+        role: Role.ADMIN,
+      });
+      console.log('Admin user created successfully');
+    }
+  }
+}
+backend/src/users/users.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto, UpdatePasswordDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from './schemas/user.schema';
+
+@Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get('profile')
+  async getProfile(@CurrentUser() user: User) {
+    return this.usersService.findOne(user._id.toString());
+  }
+
+  @Patch('profile')
+  async updateProfile(
+    @CurrentUser() user: User,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.update(user._id.toString(), updateUserDto);
+  }
+
+  @Patch('password')
+  async updatePassword(
+    @CurrentUser() user: User,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    await this.usersService.updatePassword(user._id.toString(), updatePasswordDto);
+    return { message: 'Password updated successfully' };
+  }
+
+  @Get()
+  @Roles(Role.ADMIN)
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('role') role?: Role,
+  ) {
+    return this.usersService.findAll(page, limit, role);
+  }
+
+  @Get(':id')
+  @Roles(Role.ADMIN)
+  async findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN)
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  @Patch(':id/role')
+  @Roles(Role.ADMIN)
+  async updateRole(@Param('id') id: string, @Body('role') role: Role) {
+    return this.usersService.updateRole(id, role);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  async remove(@Param('id') id: string) {
+    await this.usersService.remove(id);
+    return { message: 'User deleted successfully' };
+  }
+}
+backend/src/users/users.module.ts
+TypeScript
+
+import { Module, OnModuleInit } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
+import { User, UserSchema } from './schemas/user.schema';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+  ],
+  controllers: [UsersController],
+  providers: [UsersService],
+  exports: [UsersService],
+})
+export class UsersModule implements OnModuleInit {
+  constructor(private readonly usersService: UsersService) {}
+
+  async onModuleInit() {
+    // Seed admin user on module initialization
+    await this.usersService.seedAdmin();
+  }
+}
+backend/src/auth/dto/register.dto.ts
+TypeScript
+
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+  Matches,
+} from 'class-validator';
+
+export class RegisterDto {
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(8)
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    {
+      message:
+        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+    },
+  )
+  password: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
+backend/src/auth/dto/login.dto.ts
+TypeScript
+
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class LoginDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+}
+backend/src/auth/strategies/jwt.strategy.ts
+TypeScript
+
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service';
+
+export interface JwtPayload {
+  sub: string;
+  email: string;
+  role: string;
+}
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private configService: ConfigService,
+    private usersService: UsersService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
+    });
+  }
+
+  async validate(payload: JwtPayload) {
+    const user = await this.usersService.findOne(payload.sub);
+    
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    return user;
+  }
+}
+backend/src/auth/guards/jwt-auth.guard.ts
+TypeScript
+
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
+
+  canActivate(context: ExecutionContext) {
+    // Check if route is marked as public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
+    return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, info: any) {
+    if (err || !user) {
+      throw err || new UnauthorizedException('Authentication required');
+    }
+    return user;
+  }
+}
+backend/src/auth/guards/roles.guard.ts
+TypeScript
+
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+import { Role } from '../../common/enums/role.enum';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (!requiredRoles) {
+      return true;
+    }
+
+    const { user } = context.switchToHttp().getRequest();
+    return requiredRoles.some((role) => user.role === role);
+  }
+}
+backend/src/auth/decorators/roles.decorator.ts
+TypeScript
+
+import { SetMetadata } from '@nestjs/common';
+import { Role } from '../../common/enums/role.enum';
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+backend/src/auth/decorators/public.decorator.ts
+TypeScript
+
+import { SetMetadata } from '@nestjs/common';
+
+export const IS_PUBLIC_KEY = 'isPublic';
+export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+backend/src/auth/decorators/current-user.decorator.ts
+TypeScript
+
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const CurrentUser = createParamDecorator(
+  (data: string, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user;
+
+    return data ? user?.[data] : user;
+  },
+);
+backend/src/auth/auth.service.ts
+TypeScript
+
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { User } from '../users/schemas/user.schema';
+
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
+
+  async register(registerDto: RegisterDto): Promise<AuthResponse> {
+    // Check if user exists
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already registered');
+    }
+
+    // Create user
+    const user = await this.usersService.create(registerDto);
+
+    // Generate token
+    const accessToken = this.generateToken(user);
+
+    return {
+      user,
+      accessToken,
+    };
+  }
+
+  async login(loginDto: LoginDto): Promise<AuthResponse> {
+    const user = await this.usersService.findByEmail(loginDto.email);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await this.usersService.validatePassword(
+      user,
+      loginDto.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated');
+    }
+
+    // Update last login
+    await this.usersService.updateLastLogin(user._id.toString());
+
+    // Generate token
+    const accessToken = this.generateToken(user);
+
+    return {
+      user,
+      accessToken,
+    };
+  }
+
+  async validateUser(id: string): Promise<User> {
+    return this.usersService.findOne(id);
+  }
+
+  private generateToken(user: User): string {
+    const payload = {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+
+    return this.jwtService.sign(payload);
+  }
+}
+backend/src/auth/auth.controller.ts
+TypeScript
+
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { Public } from './decorators/public.decorator';
+import { User } from '../users/schemas/user.schema';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Post('register')
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Public()
+  @Post('login')
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getMe(@CurrentUser() user: User) {
+    return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('refresh')
+  async refresh(@CurrentUser() user: User) {
+    return this.authService.login({
+      email: user.email,
+      password: '', // This won't be used since we're refreshing
+    });
+  }
+}
+backend/src/auth/auth.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { UsersModule } from '../users/users.module';
+
+@Module({
+  imports: [
+    UsersModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '7d',
+        },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  exports: [AuthService, JwtModule],
+})
+export class AuthModule {}
+backend/src/vendors/schemas/vendor.schema.ts
+TypeScript
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
+
+export type VendorDocument = Vendor & Document;
+
+export enum VendorStatus {
+  PENDING = 'pending',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
+  SUSPENDED = 'suspended',
+}
+
+@Schema({ timestamps: true })
+export class Vendor {
+  _id: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
+  user: User | Types.ObjectId;
+
+  @Prop({ required: true })
+  businessName: string;
+
+  @Prop({ required: true })
+  businessDescription: string;
+
+  @Prop()
+  businessAddress: string;
+
+  @Prop()
+  businessPhone: string;
+
+  @Prop()
+  businessEmail: string;
+
+  @Prop()
+  logo?: string;
+
+  @Prop([String])
+  documents: string[];
+
+  @Prop({ type: String, enum: VendorStatus, default: VendorStatus.PENDING })
+  status: VendorStatus;
+
+  @Prop()
+  verifiedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  verifiedBy?: User | Types.ObjectId;
+
+  @Prop()
+  rejectionReason?: string;
+
+  @Prop({ default: 0 })
+  totalGoods: number;
+
+  @Prop({ default: 0 })
+  rating: number;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const VendorSchema = SchemaFactory.createForClass(Vendor);
+
+// Indexes
+VendorSchema.index({ user: 1 });
+VendorSchema.index({ status: 1 });
+VendorSchema.index({ businessName: 'text', businessDescription: 'text' });
+
+VendorSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});
+backend/src/vendors/dto/create-vendor.dto.ts
+TypeScript
+
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsArray,
+} from 'class-validator';
+
+export class CreateVendorDto {
+  @IsNotEmpty()
+  @IsString()
+  businessName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  businessDescription: string;
+
+  @IsOptional()
+  @IsString()
+  businessAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  businessPhone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  businessEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  logo?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documents?: string[];
+}
+backend/src/vendors/dto/update-vendor.dto.ts
+TypeScript
+
+import { PartialType } from '@nestjs/mapped-types';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { CreateVendorDto } from './create-vendor.dto';
+import { VendorStatus } from '../schemas/vendor.schema';
+
+export class UpdateVendorDto extends PartialType(CreateVendorDto) {}
+
+export class UpdateVendorStatusDto {
+  @IsEnum(VendorStatus)
+  status: VendorStatus;
+
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}
+backend/src/vendors/vendors.service.ts
+TypeScript
+
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Vendor, VendorDocument, VendorStatus } from './schemas/vendor.schema';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto, UpdateVendorStatusDto } from './dto/update-vendor.dto';
+import { UsersService } from '../users/users.service';
+import { Role } from '../common/enums/role.enum';
+
+@Injectable()
+export class VendorsService {
+  constructor(
+    @InjectModel(Vendor.name) private vendorModel: Model<VendorDocument>,
+    private usersService: UsersService,
+  ) {}
+
+  async create(userId: string, createVendorDto: CreateVendorDto): Promise<Vendor> {
+    // Check if user already has a vendor profile
+    const existingVendor = await this.vendorModel.findOne({ user: userId });
+    if (existingVendor) {
+      throw new ConflictException('Vendor profile already exists');
+    }
+
+    const vendor = new this.vendorModel({
+      ...createVendorDto,
+      user: userId,
+    });
+
+    await vendor.save();
+
+    // Update user role to vendor
+    await this.usersService.updateRole(userId, Role.VENDOR);
+
+    return vendor.populate('user', '-password');
+  }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    status?: VendorStatus,
+    search?: string,
+  ): Promise<{ vendors: Vendor[]; total: number; pages: number }> {
+    const query: any = {};
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    const skip = (page - 1) * limit;
+    const [vendors, total] = await Promise.all([
+      this.vendorModel
+        .find(query)
+        .populate('user', '-password')
+        .populate('verifiedBy', '-password')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      this.vendorModel.countDocuments(query),
+    ]);
+
+    return {
+      vendors,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string): Promise<Vendor> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid vendor ID');
+    }
+
+    const vendor = await this.vendorModel
+      .findById(id)
+      .populate('user', '-password')
+      .populate('verifiedBy', '-password');
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    return vendor;
+  }
+
+  async findByUserId(userId: string): Promise<Vendor | null> {
+    return this.vendorModel
+      .findOne({ user: userId })
+      .populate('user', '-password');
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateVendorDto: UpdateVendorDto,
+  ): Promise<Vendor> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    // Check ownership
+    if (vendor.user.toString() !== userId) {
+      throw new ForbiddenException('You can only update your own vendor profile');
+    }
+
+    Object.assign(vendor, updateVendorDto);
+    await vendor.save();
+
+    return vendor.populate('user', '-password');
+  }
+
+  async updateStatus(
+    id: string,
+    adminId: string,
+    updateStatusDto: UpdateVendorStatusDto,
+  ): Promise<Vendor> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    vendor.status = updateStatusDto.status;
+
+    if (updateStatusDto.status === VendorStatus.VERIFIED) {
+      vendor.verifiedAt = new Date();
+      vendor.verifiedBy = new Types.ObjectId(adminId);
+      vendor.rejectionReason = undefined;
+    } else if (updateStatusDto.status === VendorStatus.REJECTED) {
+      vendor.rejectionReason = updateStatusDto.rejectionReason;
+    }
+
+    await vendor.save();
+
+    return vendor.populate(['user', 'verifiedBy']);
+  }
+
+  async incrementGoodsCount(vendorId: string, increment: number = 1): Promise<void> {
+    await this.vendorModel.findByIdAndUpdate(vendorId, {
+      $inc: { totalGoods: increment },
+    });
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    const vendor = await this.vendorModel.findById(id);
+
+    if (!vendor) {
+      throw new NotFoundException('Vendor not found');
+    }
+
+    if (vendor.user.toString() !== userId) {
+      throw new ForbiddenException('You can only delete your own vendor profile');
+    }
+
+    await vendor.deleteOne();
+
+    // Revert user role to regular user
+    await this.usersService.updateRole(userId, Role.USER);
+  }
+}
+backend/src/vendors/vendors.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { VendorsService } from './vendors.service';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto, UpdateVendorStatusDto } from './dto/update-vendor.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+import { VendorStatus } from './schemas/vendor.schema';
+
+@Controller('vendors')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class VendorsController {
+  constructor(private readonly vendorsService: VendorsService) {}
+
+  @Post()
+  async create(
+    @CurrentUser() user: User,
+    @Body() createVendorDto: CreateVendorDto,
+  ) {
+    return this.vendorsService.create(user._id.toString(), createVendorDto);
+  }
+
+  @Public()
+  @Get()
+  async findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: VendorStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.vendorsService.findAll(page, limit, status, search);
+  }
+
+  @Get('my-profile')
+  async getMyProfile(@CurrentUser() user: User) {
+    return this.vendorsService.findByUserId(user._id.toString());
+  }
+
+  @Public()
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.vendorsService.findOne(id);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateVendorDto: UpdateVendorDto,
+  ) {
+    return this.vendorsService.update(id, user._id.toString(), updateVendorDto);
+  }
+
+  @Patch(':id/status')
+  @Roles(Role.ADMIN)
+  async updateStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateStatusDto: UpdateVendorStatusDto,
+  ) {
+    return this.vendorsService.updateStatus(
+      id,
+      user._id.toString(),
+      updateStatusDto,
+    );
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string, @CurrentUser() user: User) {
+    await this.vendorsService.remove(id, user._id.toString());
+    return { message: 'Vendor profile deleted successfully' };
+  }
+}
+backend/src/vendors/vendors.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { VendorsService } from './vendors.service';
+import { VendorsController } from './vendors.controller';
+import { Vendor, VendorSchema } from './schemas/vendor.schema';
+import { UsersModule } from '../users/users.module';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Vendor.name, schema: VendorSchema }]),
+    UsersModule,
+  ],
+  controllers: [VendorsController],
+  providers: [VendorsService],
+  exports: [VendorsService],
+})
+export class VendorsModule {}
+backend/src/goods/schemas/goods.schema.ts
+TypeScript
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from '../../users/schemas/user.schema';
+import { Vendor } from '../../vendors/schemas/vendor.schema';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export type GoodsDocument = Goods & Document;
+
+@Schema({ timestamps: true })
+export class Goods {
+  _id: Types.ObjectId;
+
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ required: true })
+  description: string;
+
+  @Prop({ required: true })
+  price: number;
+
+  @Prop({ type: String, enum: GoodsType, required: true })
+  type: GoodsType;
+
+  @Prop()
+  category: string;
+
+  @Prop([String])
+  images: string[];
+
+  @Prop({ type: String, enum: GoodsStatus, default: GoodsStatus.PENDING })
+  status: GoodsStatus;
+
+  @Prop({ type: Types.ObjectId, ref: 'Vendor', required: true })
+  vendor: Vendor | Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  createdBy: User | Types.ObjectId;
+
+  @Prop()
+  location?: string;
+
+  @Prop({ type: Object })
+  specifications?: Record<string, any>;
+
+  @Prop({ default: 0 })
+  views: number;
+
+  @Prop()
+  flagReason?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  flaggedBy?: User | Types.ObjectId;
+
+  @Prop()
+  flaggedAt?: Date;
+
+  @Prop()
+  approvedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  approvedBy?: User | Types.ObjectId;
+
+  @Prop({ default: true })
+  isAvailable: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export const GoodsSchema = SchemaFactory.createForClass(Goods);
+
+// Indexes
+GoodsSchema.index({ title: 'text', description: 'text' });
+GoodsSchema.index({ vendor: 1 });
+GoodsSchema.index({ status: 1 });
+GoodsSchema.index({ type: 1 });
+GoodsSchema.index({ category: 1 });
+GoodsSchema.index({ price: 1 });
+GoodsSchema.index({ createdAt: -1 });
+
+GoodsSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    delete ret.__v;
+    return ret;
+  },
+});
+backend/src/goods/dto/create-goods.dto.ts
+TypeScript
+
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsArray,
+  IsObject,
+  Min,
+} from 'class-validator';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export class CreateGoodsDto {
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @IsNotEmpty()
+  @IsString()
+  description: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsNotEmpty()
+  @IsEnum(GoodsType)
+  type: GoodsType;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsObject()
+  specifications?: Record<string, any>;
+}
+backend/src/goods/dto/update-goods.dto.ts
+TypeScript
+
+import { PartialType } from '@nestjs/mapped-types';
+import { IsBoolean, IsOptional } from 'class-validator';
+import { CreateGoodsDto } from './create-goods.dto';
+
+export class UpdateGoodsDto extends PartialType(CreateGoodsDto) {
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
+}
+backend/src/goods/dto/query-goods.dto.ts
+TypeScript
+
+import {
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { GoodsType } from '../../common/enums/goods-type.enum';
+
+export class QueryGoodsDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+
+  @IsOptional()
+  @IsEnum(GoodsStatus)
+  status?: GoodsStatus;
+
+  @IsOptional()
+  @IsEnum(GoodsType)
+  type?: GoodsType;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maxPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  vendorId?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string = 'createdAt';
+
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc' = 'desc';
+}
+backend/src/goods/goods.service.ts
+TypeScript
+
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Goods, GoodsDocument } from './schemas/goods.schema';
+import { CreateGoodsDto } from './dto/create-goods.dto';
+import { UpdateGoodsDto } from './dto/update-goods.dto';
+import { QueryGoodsDto } from './dto/query-goods.dto';
+import { VendorsService } from '../vendors/vendors.service';
+import { GoodsStatus } from '../common/enums/goods-status.enum';
+import { VendorStatus } from '../vendors/schemas/vendor.schema';
+
+@Injectable()
+export class GoodsService {
+  constructor(
+    @InjectModel(Goods.name) private goodsModel: Model<GoodsDocument>,
+    private vendorsService: VendorsService,
+  ) {}
+
+  async create(userId: string, createGoodsDto: CreateGoodsDto): Promise<Goods> {
+    // Get vendor profile
+    const vendor = await this.vendorsService.findByUserId(userId);
+
+    if (!vendor) {
+      throw new ForbiddenException('You must be a vendor to create goods');
+    }
+
+    if (vendor.status !== VendorStatus.VERIFIED) {
+      throw new ForbiddenException('Your vendor profile must be verified to create goods');
+    }
+
+    const goods = new this.goodsModel({
+      ...createGoodsDto,
+      vendor: vendor._id,
+      createdBy: userId,
+    });
+
+    await goods.save();
+
+    // Increment vendor goods count
+    await this.vendorsService.incrementGoodsCount(vendor._id.toString());
+
+    return goods.populate(['vendor', 'createdBy']);
+  }
+
+  async findAll(
+    queryDto: QueryGoodsDto,
+    publicOnly: boolean = false,
+  ): Promise<{ goods: Goods[]; total: number; pages: number }> {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      type,
+      category,
+      search,
+      minPrice,
+      maxPrice,
+      vendorId,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = queryDto;
+
+    const query: any = {};
+
+    // For public access, only show approved goods
+    if (publicOnly) {
+      query.status = GoodsStatus.APPROVED;
+      query.isAvailable = true;
+    } else if (status) {
+      query.status = status;
+    }
+
+    if (type) {
+      query.type = type;
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.price = {};
+      if (minPrice !== undefined) {
+        query.price.$gte = minPrice;
+      }
+      if (maxPrice !== undefined) {
+        query.price.$lte = maxPrice;
+      }
+    }
+
+    if (vendorId) {
+      query.vendor = vendorId;
+    }
+
+    const skip = (page - 1) * limit;
+    const sort: any = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+
+    const [goods, total] = await Promise.all([
+      this.goodsModel
+        .find(query)
+        .populate('vendor')
+        .populate('createdBy', '-password')
+        .skip(skip)
+        .limit(limit)
+        .sort(sort),
+      this.goodsModel.countDocuments(query),
+    ]);
+
+    return {
+      goods,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string, incrementViews: boolean = false): Promise<Goods> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid goods ID');
+    }
+
+    const goods = await this.goodsModel
+      .findById(id)
+      .populate('vendor')
+      .populate('createdBy', '-password')
+      .populate('flaggedBy', '-password')
+      .populate('approvedBy', '-password');
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    if (incrementViews) {
+      goods.views += 1;
+      await goods.save();
+    }
+
+    return goods;
+  }
+
+  async findByVendor(
+    vendorId: string,
+    queryDto: QueryGoodsDto,
+  ): Promise<{ goods: Goods[]; total: number; pages: number }> {
+    return this.findAll({ ...queryDto, vendorId }, false);
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    updateGoodsDto: UpdateGoodsDto,
+  ): Promise<Goods> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    // Check ownership
+    if (goods.createdBy.toString() !== userId) {
+      throw new ForbiddenException('You can only update your own goods');
+    }
+
+    Object.assign(goods, updateGoodsDto);
+    await goods.save();
+
+    return goods.populate(['vendor', 'createdBy']);
+  }
+
+  async updateStatus(
+    id: string,
+    adminId: string,
+    status: GoodsStatus,
+    reason?: string,
+  ): Promise<Goods> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    goods.status = status;
+
+    if (status === GoodsStatus.APPROVED) {
+      goods.approvedAt = new Date();
+      goods.approvedBy = new Types.ObjectId(adminId);
+      goods.flagReason = undefined;
+      goods.flaggedBy = undefined;
+      goods.flaggedAt = undefined;
+    } else if (status === GoodsStatus.FLAGGED) {
+      goods.flagReason = reason;
+      goods.flaggedBy = new Types.ObjectId(adminId);
+      goods.flaggedAt = new Date();
+    } else if (status === GoodsStatus.DROPPED) {
+      goods.flagReason = reason;
+      goods.flaggedBy = new Types.ObjectId(adminId);
+      goods.flaggedAt = new Date();
+      goods.isAvailable = false;
+    }
+
+    await goods.save();
+
+    return goods.populate(['vendor', 'createdBy', 'flaggedBy', 'approvedBy']);
+  }
+
+  async remove(id: string, userId: string, isAdmin: boolean = false): Promise<void> {
+    const goods = await this.goodsModel.findById(id);
+
+    if (!goods) {
+      throw new NotFoundException('Goods not found');
+    }
+
+    // Check ownership or admin status
+    if (!isAdmin && goods.createdBy.toString() !== userId) {
+      throw new ForbiddenException('You can only delete your own goods');
+    }
+
+    // Decrement vendor goods count
+    await this.vendorsService.incrementGoodsCount(goods.vendor.toString(), -1);
+
+    await goods.deleteOne();
+  }
+
+  async getCategories(): Promise<string[]> {
+    return this.goodsModel.distinct('category', { status: GoodsStatus.APPROVED });
+  }
+
+  async getStats(): Promise<{
+    total: number;
+    pending: number;
+    approved: number;
+    flagged: number;
+    dropped: number;
+  }> {
+    const [total, pending, approved, flagged, dropped] = await Promise.all([
+      this.goodsModel.countDocuments(),
+      this.goodsModel.countDocuments({ status: GoodsStatus.PENDING }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.APPROVED }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.FLAGGED }),
+      this.goodsModel.countDocuments({ status: GoodsStatus.DROPPED }),
+    ]);
+
+    return { total, pending, approved, flagged, dropped };
+  }
+}
+backend/src/goods/goods.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { GoodsService } from './goods.service';
+import { CreateGoodsDto } from './dto/create-goods.dto';
+import { UpdateGoodsDto } from './dto/update-goods.dto';
+import { QueryGoodsDto } from './dto/query-goods.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+
+@Controller('goods')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class GoodsController {
+  constructor(private readonly goodsService: GoodsService) {}
+
+  @Post()
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async create(
+    @CurrentUser() user: User,
+    @Body() createGoodsDto: CreateGoodsDto,
+  ) {
+    return this.goodsService.create(user._id.toString(), createGoodsDto);
+  }
+
+  // Public endpoint - no auth required
+  @Public()
+  @Get()
+  async findAll(@Query() queryDto: QueryGoodsDto) {
+    return this.goodsService.findAll(queryDto, true);
+  }
+
+  // Admin endpoint - all goods
+  @Get('admin')
+  @Roles(Role.ADMIN)
+  async findAllAdmin(@Query() queryDto: QueryGoodsDto) {
+    return this.goodsService.findAll(queryDto, false);
+  }
+
+  // Get vendor's own goods
+  @Get('my-goods')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async findMyGoods(
+    @CurrentUser() user: User,
+    @Query() queryDto: QueryGoodsDto,
+  ) {
+    const vendor = await this.goodsService.findAll(
+      { ...queryDto, vendorId: undefined },
+      false,
+    );
+    return vendor;
+  }
+
+  @Public()
+  @Get('categories')
+  async getCategories() {
+    return this.goodsService.getCategories();
+  }
+
+  @Get('stats')
+  @Roles(Role.ADMIN)
+  async getStats() {
+    return this.goodsService.getStats();
+  }
+
+  @Public()
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.goodsService.findOne(id, true);
+  }
+
+  @Patch(':id')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async update(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() updateGoodsDto: UpdateGoodsDto,
+  ) {
+    return this.goodsService.update(id, user._id.toString(), updateGoodsDto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.VENDOR, Role.ADMIN)
+  async remove(@Param('id') id: string, @CurrentUser() user: User) {
+    const isAdmin = user.role === Role.ADMIN;
+    await this.goodsService.remove(id, user._id.toString(), isAdmin);
+    return { message: 'Goods deleted successfully' };
+  }
+}
+backend/src/goods/goods.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { GoodsService } from './goods.service';
+import { GoodsController } from './goods.controller';
+import { Goods, GoodsSchema } from './schemas/goods.schema';
+import { VendorsModule } from '../vendors/vendors.module';
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: Goods.name, schema: GoodsSchema }]),
+    VendorsModule,
+  ],
+  controllers: [GoodsController],
+  providers: [GoodsService],
+  exports: [GoodsService],
+})
+export class GoodsModule {}
+backend/src/admin/dto/admin-action.dto.ts
+TypeScript
+
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { GoodsStatus } from '../../common/enums/goods-status.enum';
+import { VendorStatus } from '../../vendors/schemas/vendor.schema';
+
+export class UpdateGoodsStatusDto {
+  @IsEnum(GoodsStatus)
+  status: GoodsStatus;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+export class UpdateVendorStatusDto {
+  @IsEnum(VendorStatus)
+  status: VendorStatus;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+backend/src/admin/admin.service.ts
+TypeScript
+
+import { Injectable } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { VendorsService } from '../vendors/vendors.service';
+import { GoodsService } from '../goods/goods.service';
+import { Role } from '../common/enums/role.enum';
+import { VendorStatus } from '../vendors/schemas/vendor.schema';
+import { GoodsStatus } from '../common/enums/goods-status.enum';
+
+@Injectable()
+export class AdminService {
+  constructor(
+    private usersService: UsersService,
+    private vendorsService: VendorsService,
+    private goodsService: GoodsService,
+  ) {}
+
+  async getDashboardStats() {
+    const [usersData, vendorsData, goodsStats] = await Promise.all([
+      this.usersService.findAll(1, 1),
+      this.vendorsService.findAll(1, 1),
+      this.goodsService.getStats(),
+    ]);
+
+    const pendingVendors = await this.vendorsService.findAll(
+      1,
+      1,
+      VendorStatus.PENDING,
+    );
+
+    return {
+      users: {
+        total: usersData.total,
+      },
+      vendors: {
+        total: vendorsData.total,
+        pending: pendingVendors.total,
+      },
+      goods: goodsStats,
+    };
+  }
+
+  async verifyVendor(vendorId: string, adminId: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.VERIFIED,
+    });
+  }
+
+  async rejectVendor(vendorId: string, adminId: string, reason: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.REJECTED,
+      rejectionReason: reason,
+    });
+  }
+
+  async suspendVendor(vendorId: string, adminId: string, reason: string) {
+    return this.vendorsService.updateStatus(vendorId, adminId, {
+      status: VendorStatus.SUSPENDED,
+      rejectionReason: reason,
+    });
+  }
+
+  async approveGoods(goodsId: string, adminId: string) {
+    return this.goodsService.updateStatus(goodsId, adminId, GoodsStatus.APPROVED);
+  }
+
+  async flagGoods(goodsId: string, adminId: string, reason: string) {
+    return this.goodsService.updateStatus(
+      goodsId,
+      adminId,
+      GoodsStatus.FLAGGED,
+      reason,
+    );
+  }
+
+  async dropGoods(goodsId: string, adminId: string, reason: string) {
+    return this.goodsService.updateStatus(
+      goodsId,
+      adminId,
+      GoodsStatus.DROPPED,
+      reason,
+    );
+  }
+
+  async getPendingVendors(page: number = 1, limit: number = 10) {
+    return this.vendorsService.findAll(page, limit, VendorStatus.PENDING);
+  }
+
+  async getPendingGoods(page: number = 1, limit: number = 10) {
+    return this.goodsService.findAll(
+      { page, limit, status: GoodsStatus.PENDING },
+      false,
+    );
+  }
+}
+backend/src/admin/admin.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Role } from '../common/enums/role.enum';
+import { User } from '../users/schemas/user.schema';
+import { UpdateGoodsStatusDto, UpdateVendorStatusDto } from './dto/admin-action.dto';
+
+@Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  @Get('dashboard')
+  async getDashboardStats() {
+    return this.adminService.getDashboardStats();
+  }
+
+  @Get('vendors/pending')
+  async getPendingVendors(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.adminService.getPendingVendors(page, limit);
+  }
+
+  @Patch('vendors/:id/verify')
+  async verifyVendor(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.adminService.verifyVendor(id, user._id.toString());
+  }
+
+  @Patch('vendors/:id/reject')
+  async rejectVendor(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.rejectVendor(id, user._id.toString(), reason);
+  }
+
+  @Patch('vendors/:id/suspend')
+  async suspendVendor(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.suspendVendor(id, user._id.toString(), reason);
+  }
+
+  @Get('goods/pending')
+  async getPendingGoods(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.adminService.getPendingGoods(page, limit);
+  }
+
+  @Patch('goods/:id/approve')
+  async approveGoods(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.adminService.approveGoods(id, user._id.toString());
+  }
+
+  @Patch('goods/:id/flag')
+  async flagGoods(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.flagGoods(id, user._id.toString(), reason);
+  }
+
+  @Patch('goods/:id/drop')
+  async dropGoods(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body('reason') reason: string,
+  ) {
+    return this.adminService.dropGoods(id, user._id.toString(), reason);
+  }
+}
+backend/src/admin/admin.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { AdminController } from './admin.controller';
+import { UsersModule } from '../users/users.module';
+import { VendorsModule } from '../vendors/vendors.module';
+import { GoodsModule } from '../goods/goods.module';
+
+@Module({
+  imports: [UsersModule, VendorsModule, GoodsModule],
+  controllers: [AdminController],
+  providers: [AdminService],
+})
+export class AdminModule {}
+backend/src/uploads/uploads.service.ts
+TypeScript
+
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import { join } from 'path';
+
+@Injectable()
+export class UploadsService {
+  private uploadPath: string;
+
+  constructor(private configService: ConfigService) {
+    this.uploadPath = this.configService.get<string>('UPLOAD_DEST') || './uploads';
+    this.ensureUploadDirectory();
+  }
+
+  private ensureUploadDirectory() {
+    const directories = ['', 'goods', 'vendors', 'avatars'];
+    directories.forEach((dir) => {
+      const path = join(this.uploadPath, dir);
+      if (!existsSync(path)) {
+        mkdirSync(path, { recursive: true });
+      }
+    });
+  }
+
+  getFilePath(filename: string): string {
+    return `${this.configService.get('API_PREFIX')}/uploads/${filename}`;
+  }
+
+  async deleteFile(filename: string): Promise<void> {
+    const filePath = join(this.uploadPath, filename);
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+  }
+
+  validateFile(file: Express.Multer.File): void {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = this.configService.get<number>('MAX_FILE_SIZE') || 5 * 1024 * 1024;
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Invalid file type. Only images are allowed.');
+    }
+
+    if (file.size > maxSize) {
+      throw new BadRequestException(`File size exceeds ${maxSize / 1024 / 1024}MB limit.`);
+    }
+  }
+}
+backend/src/uploads/uploads.controller.ts
+TypeScript
+
+import {
+  Controller,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'crypto';
+import { UploadsService } from './uploads.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+const storage = diskStorage({
+  destination: (req, file, cb) => {
+    const folder = req.query.folder || 'goods';
+    cb(null, `./uploads/${folder}`);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestException('Invalid file type'), false);
+  }
+};
+
+@Controller('uploads')
+@UseGuards(JwtAuthGuard)
+export class UploadsController {
+  constructor(private readonly uploadsService: UploadsService) {}
+
+  @Post('single')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage,
+      fileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadSingle(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return {
+      filename: file.filename,
+      path: `/uploads/${file.filename}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    };
+  }
+
+  @Post('multiple')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage,
+      fileFilter,
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
+  uploadMultiple(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
+
+    return files.map((file) => ({
+      filename: file.filename,
+      path: `/uploads/${file.filename}`,
+      mimetype: file.mimetype,
+      size: file.size,
+    }));
+  }
+
+  @Delete(':filename')
+  async deleteFile(@Param('filename') filename: string) {
+    await this.uploadsService.deleteFile(filename);
+    return { message: 'File deleted successfully' };
+  }
+}
+backend/src/uploads/uploads.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { UploadsController } from './uploads.controller';
+import { UploadsService } from './uploads.service';
+
+@Module({
+  controllers: [UploadsController],
+  providers: [UploadsService],
+  exports: [UploadsService],
+})
+export class UploadsModule {}

@@ -1,25 +1,22 @@
 # ============================================
-# BACKEND (NestJS) SPECIFIC GITIGNORE
+# FRONTEND (Next.js) SPECIFIC GITIGNORE
 # ============================================
 
 # Dependencies
 node_modules/
 
-# Build output
-dist/
-build/
+# Next.js build output
+.next/
+out/
 
 # Environment files
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
 
 # Logs
-logs/
 *.log
-
-# Coverage
-coverage/
 
 # IDE
 .idea/
@@ -30,15 +27,15 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Uploads (local development)
-uploads/*
-!uploads/.gitkeep
-
-# TypeScript
-*.tsbuildinfo
-
 # Debug
 npm-debug.log*
 
-# Test
-.nyc_output/
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Testing
+coverage/

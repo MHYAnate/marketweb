@@ -1,0 +1,2106 @@
+Complete Deployment Guide & Project Configuration
+📁 Project Structure with Labels
+text
+
+marketplace-app/
+├── .gitignore                    # Root gitignore (covers entire project)
+├── .env.example                  # Example environment variables
+├── docker-compose.yml            # Docker Compose for all services
+├── docker-compose.prod.yml       # Production Docker Compose
+├── README.md                     # Project documentation
+│
+├── backend/                      # NestJS Backend API
+│   ├── Dockerfile               # Development Dockerfile
+│   ├── Dockerfile.prod          # Production Dockerfile
+│   ├── .dockerignore            # Docker ignore file
+│   ├── .env                     # Backend environment variables
+│   ├── .env.example             # Example env file
+│   └── ...
+│
+└── frontend/                     # Next.js Frontend
+    ├── Dockerfile               # Development Dockerfile
+    ├── Dockerfile.prod          # Production Dockerfile
+    ├── .dockerignore            # Docker ignore file
+    ├── .env.local               # Frontend environment variables
+    ├── .env.example             # Example env file
+    └── ...
+🚫 Git Ignore Files
+Root .gitignore (marketplace-app/.gitignore)
+gitignore
+
+# ============================================
+# MARKETPLACE APP - ROOT GITIGNORE
+# ============================================
+# This file tells Git which files/folders to ignore
+# Files listed here won't be tracked or committed
+# ============================================
+
+# ==========================================
+# DEPENDENCIES
+# ==========================================
+# Node.js dependencies - these are installed via npm install
+# We don't commit these because:
+# 1. They're large (can be hundreds of MB)
+# 2. They can be regenerated from package.json
+# 3. They may differ between operating systems
+node_modules/
+*/node_modules/
+
+# Package manager lock files (optional - some teams commit these)
+# Uncomment if you don't want to track lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==========================================
+# ENVIRONMENT FILES
+# ==========================================
+# These contain sensitive information like:
+# - Database passwords
+# - API keys
+# - JWT secrets
+# NEVER commit these to public repositories!
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+*.env
+
+# Keep example files (they show what variables are needed)
+!.env.example
+!*.env.example
+
+# ==========================================
+# BUILD OUTPUTS
+# ==========================================
+# These are generated files that can be recreated
+# No need to track them in version control
+
+# NestJS build output
+backend/dist/
+dist/
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+.next/
+out/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# ==========================================
+# LOGS & DEBUG FILES
+# ==========================================
+# Log files can grow very large and contain
+# sensitive debugging information
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ==========================================
+# RUNTIME & CACHE
+# ==========================================
+# Temporary files created during development
+.cache/
+*.cache
+.temp/
+.tmp/
+
+# Next.js cache
+.next/cache/
+
+# Babel cache
+.babel_cache/
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# ==========================================
+# TESTING
+# ==========================================
+# Test coverage reports - can be regenerated
+coverage/
+*.lcov
+.nyc_output/
+
+# Jest cache
+jest/
+
+# ==========================================
+# IDE & EDITOR FILES
+# ==========================================
+# These are personal editor configurations
+# Each developer may use different editors
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs (WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+
+# Emacs
+*~
+\#*\#
+.#*
+
+# ==========================================
+# OPERATING SYSTEM FILES
+# ==========================================
+# Hidden files created by operating systems
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==========================================
+# UPLOADS & USER CONTENT
+# ==========================================
+# Local upload directories (we use Cloudinary in production)
+uploads/
+!uploads/.gitkeep
+backend/uploads/
+!backend/uploads/.gitkeep
+
+# ==========================================
+# DOCKER
+# ==========================================
+# Docker volumes and local data
+docker-data/
+.docker/
+
+# ==========================================
+# CERTIFICATES & SECRETS
+# ==========================================
+# SSL certificates and secret keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# ==========================================
+# MISCELLANEOUS
+# ==========================================
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Debug files
+*.debug
+
+# Sentry
+.sentryclirc
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# ==========================================
+# PROJECT SPECIFIC
+# ==========================================
+# Add any project-specific ignores here
+
+# Local seed data exports
+seed-exports/
+data-exports/
+
+# Local database dumps
+*.dump
+*.sql
+mongodump/
+Backend .gitignore (backend/.gitignore)
+gitignore
+
+# ============================================
+# BACKEND (NestJS) SPECIFIC GITIGNORE
+# ============================================
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (local development)
+uploads/*
+!uploads/.gitkeep
+
+# TypeScript
+*.tsbuildinfo
+
+# Debug
+npm-debug.log*
+
+# Test
+.nyc_output/
+Frontend .gitignore (frontend/.gitignore)
+gitignore
+
+# ============================================
+# FRONTEND (Next.js) SPECIFIC GITIGNORE
+# ============================================
+
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Testing
+coverage/
+🐳 Docker Files (Fully Documented)
+Backend Development Dockerfile (backend/Dockerfile)
+Dockerfile
+
+# ============================================
+# BACKEND DEVELOPMENT DOCKERFILE
+# ============================================
+# This Dockerfile is for LOCAL DEVELOPMENT
+# It includes hot-reloading and development tools
+# ============================================
+
+# --------------------------------------------
+# STAGE: Development
+# --------------------------------------------
+# Use Node.js 20 Alpine (lightweight Linux)
+# Alpine is smaller than regular Ubuntu/Debian images
+FROM node:20-alpine
+
+# LABEL: Metadata about this image
+# Helps identify the image purpose and maintainer
+LABEL maintainer="your-email@example.com"
+LABEL description="Marketplace Backend API - Development"
+LABEL version="1.0.0"
+
+# Set working directory inside container
+# All subsequent commands run from this directory
+WORKDIR /app
+
+# Install system dependencies
+# - python3, make, g++: Required for some npm packages that need compilation
+# - curl: For health checks
+RUN apk add --no-cache python3 make g++ curl
+
+# Copy package files first (for Docker layer caching)
+# Docker caches each layer - if package.json hasn't changed,
+# npm install layer is reused (saves time on rebuilds)
+COPY package*.json ./
+
+# Install ALL dependencies (including devDependencies)
+# We need devDependencies for development (TypeScript, etc.)
+RUN npm install
+
+# Copy the rest of the application code
+# This is copied after npm install to leverage caching
+COPY . .
+
+# Create uploads directory for local file storage
+# The -p flag creates parent directories if needed
+RUN mkdir -p uploads
+
+# Expose port 3001 (NestJS default development port)
+# This is documentation - actual port binding happens in docker-compose
+EXPOSE 3001
+
+# Health check - Docker will periodically check if container is healthy
+# --interval: Check every 30 seconds
+# --timeout: Wait max 10 seconds for response
+# --start-period: Wait 40 seconds before first check
+# --retries: Fail after 3 unsuccessful checks
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3001/api/v1/health || exit 1
+
+# Default command to run when container starts
+# npm run start:dev enables hot-reloading (file watching)
+CMD ["npm", "run", "start:dev"]
+Backend Production Dockerfile (backend/Dockerfile.prod)
+Dockerfile
+
+# ============================================
+# BACKEND PRODUCTION DOCKERFILE
+# ============================================
+# This Dockerfile is for PRODUCTION deployment
+# It creates an optimized, secure, minimal image
+# Uses multi-stage builds for smaller final image
+# ============================================
+
+# --------------------------------------------
+# STAGE 1: Dependencies
+# --------------------------------------------
+# Install all dependencies in a separate stage
+# This layer is cached and reused if package.json unchanged
+FROM node:20-alpine AS dependencies
+
+LABEL stage="dependencies"
+
+WORKDIR /app
+
+# Copy only package files for dependency installation
+COPY package*.json ./
+
+# Install ALL dependencies (we need devDeps for building)
+# --frozen-lockfile ensures exact versions from lock file
+RUN npm ci --frozen-lockfile
+
+# --------------------------------------------
+# STAGE 2: Builder
+# --------------------------------------------
+# Compile TypeScript to JavaScript
+FROM node:20-alpine AS builder
+
+LABEL stage="builder"
+
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Build the application (TypeScript -> JavaScript)
+# This creates the /dist folder
+RUN npm run build
+
+# Remove development dependencies after build
+# We only need production dependencies to run
+RUN npm prune --production
+
+# --------------------------------------------
+# STAGE 3: Production
+# --------------------------------------------
+# Create the final, minimal production image
+FROM node:20-alpine AS production
+
+LABEL maintainer="your-email@example.com"
+LABEL description="Marketplace Backend API - Production"
+LABEL version="1.0.0"
+
+# Set to production mode
+# This affects how Node.js and npm behave
+ENV NODE_ENV=production
+
+# Create non-root user for security
+# Running as root is a security risk
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 -G nodejs
+
+WORKDIR /app
+
+# Copy only necessary files from builder stage
+# --chown sets ownership to our non-root user
+COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
+
+# Create uploads directory with proper permissions
+RUN mkdir -p uploads && chown -R nestjs:nodejs uploads
+
+# Switch to non-root user
+USER nestjs
+
+# Expose production port
+EXPOSE 3001
+
+# Health check for production
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3001/api/v1/health || exit 1
+
+# Start the production server
+# node is more efficient than npm for production
+CMD ["node", "dist/main.js"]
+Backend .dockerignore (backend/.dockerignore)
+dockerignore
+
+# ============================================
+# BACKEND DOCKER IGNORE
+# ============================================
+# Files listed here are NOT copied into Docker image
+# This keeps images smaller and builds faster
+# ============================================
+
+# Dependencies (we install fresh in container)
+node_modules/
+
+# Build output (we build fresh in container)
+dist/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (passed via docker-compose or secrets)
+.env
+.env.*
+!.env.example
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-*
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Tests (not needed in production)
+test/
+*.spec.ts
+*.test.ts
+coverage/
+jest.config.js
+
+# Development configs
+.eslintrc.js
+.prettierrc
+tsconfig.build.json
+
+# Docker files (don't copy into image)
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (we use Cloudinary)
+uploads/
+
+# Logs
+*.log
+logs/
+
+# Debug
+npm-debug.log*
+Frontend Development Dockerfile (frontend/Dockerfile)
+Dockerfile
+
+# ============================================
+# FRONTEND DEVELOPMENT DOCKERFILE
+# ============================================
+# This Dockerfile is for LOCAL DEVELOPMENT
+# It includes hot-reloading with Next.js fast refresh
+# ============================================
+
+FROM node:20-alpine
+
+LABEL maintainer="your-email@example.com"
+LABEL description="Marketplace Frontend - Development"
+LABEL version="1.0.0"
+
+WORKDIR /app
+
+# Install dependencies for node-gyp (some packages need it)
+RUN apk add --no-cache libc6-compat
+
+# Copy package files for dependency caching
+COPY package*.json ./
+
+# Install all dependencies
+RUN npm install
+
+# Copy application code
+COPY . .
+
+# Expose Next.js development port
+EXPOSE 3000
+
+# Environment variable for development
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Start development server with hot-reloading
+CMD ["npm", "run", "dev"]
+Frontend Production Dockerfile (frontend/Dockerfile.prod)
+Dockerfile
+
+# ============================================
+# FRONTEND PRODUCTION DOCKERFILE
+# ============================================
+# This Dockerfile creates an optimized Next.js production build
+# Uses standalone output for minimal image size
+# ============================================
+
+# --------------------------------------------
+# STAGE 1: Dependencies
+# --------------------------------------------
+FROM node:20-alpine AS dependencies
+
+LABEL stage="dependencies"
+
+WORKDIR /app
+
+# Required for some npm packages
+RUN apk add --no-cache libc6-compat
+
+COPY package*.json ./
+
+# Install dependencies with exact versions
+RUN npm ci --frozen-lockfile
+
+# --------------------------------------------
+# STAGE 2: Builder
+# --------------------------------------------
+FROM node:20-alpine AS builder
+
+LABEL stage="builder"
+
+WORKDIR /app
+
+# Copy dependencies
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Set environment variables for build
+# NEXT_TELEMETRY_DISABLED: Disable Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Build arguments for environment variables
+# These are passed at build time via docker build --build-arg
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_UPLOADS_URL
+
+# Set them as environment variables for the build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_UPLOADS_URL=$NEXT_PUBLIC_UPLOADS_URL
+
+# Build Next.js application
+# This creates optimized production bundles in .next folder
+RUN npm run build
+
+# --------------------------------------------
+# STAGE 3: Production Runner
+# --------------------------------------------
+FROM node:20-alpine AS production
+
+LABEL maintainer="your-email@example.com"
+LABEL description="Marketplace Frontend - Production"
+LABEL version="1.0.0"
+
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Copy necessary files from builder
+# Next.js standalone output includes everything needed
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Set the port environment variable
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Start the server
+CMD ["node", "server.js"]
+Frontend next.config.js (Updated for Standalone)
+JavaScript
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Enable standalone output for Docker deployment
+  // This creates a minimal production bundle
+  output: 'standalone',
+  
+  // Image optimization settings
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3001',
+        pathname: '/uploads/**',
+      },
+    ],
+    // Disable image optimization in development if needed
+    // unoptimized: process.env.NODE_ENV === 'development',
+  },
+  
+  // Disable x-powered-by header for security
+  poweredByHeader: false,
+  
+  // Enable React strict mode for better development
+  reactStrictMode: true,
+  
+  // Experimental features (optional)
+  experimental: {
+    // Enable server actions if needed
+    // serverActions: true,
+  },
+};
+
+module.exports = nextConfig;
+Frontend .dockerignore (frontend/.dockerignore)
+dockerignore
+
+# ============================================
+# FRONTEND DOCKER IGNORE
+# ============================================
+
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+
+# Documentation
+README.md
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Tests
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+cypress/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Storybook (if used)
+.storybook/
+storybook-static/
+🐳 Docker Compose Files
+Development Docker Compose (docker-compose.yml)
+YAML
+
+# ============================================
+# DOCKER COMPOSE - DEVELOPMENT
+# ============================================
+# This file orchestrates all services for local development
+# Run with: docker-compose up -d
+# ============================================
+
+version: '3.8'
+
+# ==========================================
+# SERVICES
+# ==========================================
+services:
+  
+  # ------------------------------------------
+  # MongoDB Database
+  # ------------------------------------------
+  # NoSQL database for storing all application data
+  mongodb:
+    # Official MongoDB image, version 7.0
+    image: mongo:7.0
+    
+    # Container name for easy reference
+    container_name: marketplace-mongodb
+    
+    # Restart policy - restart unless manually stopped
+    restart: unless-stopped
+    
+    # Port mapping: host:container
+    # Access MongoDB at localhost:27017
+    ports:
+      - '27017:27017'
+    
+    # Persistent storage - data survives container restarts
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    
+    # Environment variables for MongoDB
+    environment:
+      # Initial database to create
+      - MONGO_INITDB_DATABASE=marketplace
+      # Uncomment to enable authentication:
+      # - MONGO_INITDB_ROOT_USERNAME=admin
+      # - MONGO_INITDB_ROOT_PASSWORD=password
+    
+    # Network for inter-container communication
+    networks:
+      - marketplace-network
+    
+    # Health check for MongoDB
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/marketplace --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ------------------------------------------
+  # Backend API (NestJS)
+  # ------------------------------------------
+  backend:
+    # Build from local Dockerfile
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    
+    container_name: marketplace-backend
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - '3001:3001'
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - API_PREFIX=api/v1
+      # MongoDB connection (uses service name as hostname)
+      - MONGODB_URI=mongodb://mongodb:27017/marketplace
+      # JWT settings
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production-2024
+      - JWT_EXPIRES_IN=7d
+      # CORS
+      - FRONTEND_URL=http://localhost:3000
+      # Admin credentials for seeding
+      - ADMIN_EMAIL=admin@marketplace.com
+      - ADMIN_PASSWORD=Admin@123
+      # Cloudinary
+      - CLOUDINARY_CLOUD_NAME=dvawopdt3
+      - CLOUDINARY_API_KEY=722424522516754
+      - CLOUDINARY_API_SECRET=uewoHqBj0jX1_rbTFa1vKwrnBXw
+      - CLOUDINARY_ASSET_FOLDER=imagefolder
+      - CLOUDINARY_PRESET_NAME=ppoint
+    
+    # Volume mounts for development
+    volumes:
+      # Mount source code for hot-reloading
+      - ./backend:/app
+      # Anonymous volume for node_modules (prevents overwrite)
+      - /app/node_modules
+      # Persist uploads locally
+      - ./backend/uploads:/app/uploads
+    
+    # Wait for MongoDB to be ready before starting
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    
+    networks:
+      - marketplace-network
+    
+    # Health check
+    healthcheck:
+      test: curl -f http://localhost:3001/api/v1/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ------------------------------------------
+  # Frontend (Next.js)
+  # ------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    
+    container_name: marketplace-frontend
+    restart: unless-stopped
+    
+    ports:
+      - '3000:3000'
+    
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+      - NEXT_PUBLIC_UPLOADS_URL=http://localhost:3001
+    
+    volumes:
+      # Mount source code for hot-reloading
+      - ./frontend:/app
+      # Anonymous volume for node_modules
+      - /app/node_modules
+      # Anonymous volume for .next (build cache)
+      - /app/.next
+    
+    depends_on:
+      - backend
+    
+    networks:
+      - marketplace-network
+
+# ==========================================
+# NETWORKS
+# ==========================================
+# Custom network for container communication
+networks:
+  marketplace-network:
+    driver: bridge
+    name: marketplace-network
+
+# ==========================================
+# VOLUMES
+# ==========================================
+# Named volumes for persistent data
+volumes:
+  mongodb_data:
+    name: marketplace-mongodb-data
+  mongodb_config:
+    name: marketplace-mongodb-config
+Production Docker Compose (docker-compose.prod.yml)
+YAML
+
+# ============================================
+# DOCKER COMPOSE - PRODUCTION
+# ============================================
+# Optimized for production deployment
+# Run with: docker-compose -f docker-compose.prod.yml up -d
+# ============================================
+
+version: '3.8'
+
+services:
+  
+  # ------------------------------------------
+  # MongoDB (Production)
+  # ------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: marketplace-mongodb-prod
+    restart: always
+    
+    # In production, don't expose MongoDB port externally
+    # Only accessible within Docker network
+    expose:
+      - '27017'
+    
+    volumes:
+      - mongodb_data_prod:/data/db
+      - mongodb_config_prod:/data/configdb
+    
+    # Use environment file for sensitive data
+    env_file:
+      - .env.production
+    
+    environment:
+      - MONGO_INITDB_DATABASE=marketplace
+      # Enable authentication in production
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    
+    networks:
+      - marketplace-network-prod
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/marketplace -u ${MONGO_ROOT_USERNAME} -p ${MONGO_ROOT_PASSWORD} --authenticationDatabase admin --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ------------------------------------------
+  # Backend API (Production)
+  # ------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    
+    container_name: marketplace-backend-prod
+    restart: always
+    
+    # Expose to internal network, use reverse proxy for external access
+    expose:
+      - '3001'
+    
+    # For direct access (optional, remove if using reverse proxy)
+    ports:
+      - '3001:3001'
+    
+    env_file:
+      - .env.production
+    
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    
+    networks:
+      - marketplace-network-prod
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+      # Enable multiple replicas for high availability
+      # replicas: 2
+    
+    healthcheck:
+      test: curl -f http://localhost:3001/api/v1/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ------------------------------------------
+  # Frontend (Production)
+  # ------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_UPLOADS_URL=${NEXT_PUBLIC_UPLOADS_URL}
+    
+    container_name: marketplace-frontend-prod
+    restart: always
+    
+    expose:
+      - '3000'
+    
+    ports:
+      - '3000:3000'
+    
+    environment:
+      - NODE_ENV=production
+    
+    depends_on:
+      - backend
+    
+    networks:
+      - marketplace-network-prod
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ------------------------------------------
+  # Nginx Reverse Proxy (Optional)
+  # ------------------------------------------
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: marketplace-nginx
+  #   restart: always
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - frontend
+  #     - backend
+  #   networks:
+  #     - marketplace-network-prod
+
+networks:
+  marketplace-network-prod:
+    driver: bridge
+    name: marketplace-network-prod
+
+volumes:
+  mongodb_data_prod:
+    name: marketplace-mongodb-data-prod
+  mongodb_config_prod:
+    name: marketplace-mongodb-config-prod
+Production Environment File (.env.production)
+env
+
+# ============================================
+# PRODUCTION ENVIRONMENT VARIABLES
+# ============================================
+# DO NOT commit this file to version control!
+# Copy to server and configure with actual values
+# ============================================
+
+# Application
+NODE_ENV=production
+PORT=3001
+API_PREFIX=api/v1
+
+# MongoDB with Authentication
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=your-secure-mongodb-password-here
+MONGODB_URI=mongodb://admin:your-secure-mongodb-password-here@mongodb:27017/marketplace?authSource=admin
+
+# JWT - Use a strong, unique secret in production
+JWT_SECRET=your-production-jwt-secret-at-least-32-characters-long-random-string
+JWT_EXPIRES_IN=7d
+
+# Frontend URL
+FRONTEND_URL=https://your-domain.com
+NEXT_PUBLIC_API_URL=https://api.your-domain.com/api/v1
+NEXT_PUBLIC_UPLOADS_URL=https://res.cloudinary.com
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=dvawopdt3
+CLOUDINARY_API_KEY=722424522516754
+CLOUDINARY_API_SECRET=uewoHqBj0jX1_rbTFa1vKwrnBXw
+CLOUDINARY_ASSET_FOLDER=imagefolder
+CLOUDINARY_PRESET_NAME=ppoint
+
+# Admin
+ADMIN_EMAIL=admin@your-domain.com
+ADMIN_PASSWORD=SecureAdminPassword123!
+📝 Health Check Endpoint
+backend/src/health/health.controller.ts
+TypeScript
+
+import { Controller, Get } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+
+@Controller('health')
+export class HealthController {
+  @Public()
+  @Get()
+  check() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+    };
+  }
+}
+backend/src/health/health.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { HealthController } from './health.controller';
+
+@Module({
+  controllers: [HealthController],
+})
+export class HealthModule {}
+Update backend/src/app.module.ts
+TypeScript
+
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { VendorsModule } from './vendors/vendors.module';
+import { GoodsModule } from './goods/goods.module';
+import { AdminModule } from './admin/admin.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { HealthModule } from './health/health.module'; // Add this
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+      }),
+      inject: [ConfigService],
+    }),
+    HealthModule, // Add this
+    AuthModule,
+    UsersModule,
+    VendorsModule,
+    GoodsModule,
+    AdminModule,
+    UploadsModule,
+  ],
+})
+export class AppModule {}
+🚀 Step-by-Step Deployment Guide
+📋 Deployment Overview
+text
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DEPLOYMENT FLOW DIAGRAM                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  LOCAL DEVELOPMENT                                                  │
+│  ┌─────────────────┐                                               │
+│  │  Your Computer  │                                               │
+│  │  ┌───────────┐  │    docker-compose up                         │
+│  │  │  Code     │──┼──────────────────────┐                        │
+│  │  │  Changes  │  │                      │                        │
+│  │  └───────────┘  │                      ▼                        │
+│  └─────────────────┘           ┌─────────────────────┐             │
+│                                │   Docker Containers  │             │
+│                                │  ┌───────┐ ┌───────┐│             │
+│                                │  │MongoDB│ │Backend││             │
+│                                │  └───────┘ └───────┘│             │
+│                                │  ┌───────────────┐  │             │
+│                                │  │   Frontend    │  │             │
+│                                │  └───────────────┘  │             │
+│                                └─────────────────────┘             │
+│                                                                     │
+│  PRODUCTION DEPLOYMENT                                              │
+│  ┌─────────────────┐         ┌─────────────────────┐               │
+│  │   Git Push      │────────▶│   CI/CD Pipeline    │               │
+│  │   to main       │         │  (GitHub Actions)   │               │
+│  └─────────────────┘         └──────────┬──────────┘               │
+│                                         │                           │
+│                                         ▼                           │
+│                              ┌─────────────────────┐               │
+│                              │   Build & Test      │               │
+│                              │  ┌───────────────┐  │               │
+│                              │  │ Run Tests     │  │               │
+│                              │  │ Build Images  │  │               │
+│                              │  │ Push to Reg   │  │               │
+│                              │  └───────────────┘  │               │
+│                              └──────────┬──────────┘               │
+│                                         │                           │
+│                                         ▼                           │
+│                              ┌─────────────────────┐               │
+│                              │   Production Server │               │
+│                              │  ┌───────────────┐  │               │
+│                              │  │ Pull Images   │  │               │
+│                              │  │ Deploy        │  │               │
+│                              │  │ Health Check  │  │               │
+│                              │  └───────────────┘  │               │
+│                              └─────────────────────┘               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+🏠 Local Development Deployment
+Step 1: Clone and Setup Project
+Bash
+
+# Clone the repository
+git clone https://github.com/your-username/marketplace-app.git
+cd marketplace-app
+
+# View the project structure
+ls -la
+# Output:
+# backend/
+# frontend/
+# docker-compose.yml
+# .gitignore
+# README.md
+Step 2: Configure Environment Variables
+Bash
+
+# Backend environment
+cd backend
+cp .env.example .env
+
+# Edit with your settings
+nano .env
+# Or use your preferred editor: code .env, vim .env
+
+# Frontend environment
+cd ../frontend
+cp .env.example .env.local
+
+nano .env.local
+Step 3: Start with Docker (Recommended)
+Bash
+
+# Go back to root directory
+cd ..
+
+# Start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f mongodb
+Expected Output:
+
+text
+
+Creating network "marketplace-network" with driver "bridge"
+Creating marketplace-mongodb ... done
+Creating marketplace-backend ... done
+Creating marketplace-frontend ... done
+Step 4: Run Database Seed
+Bash
+
+# Seed the database with sample data
+docker-compose exec backend npm run seed
+
+# Or if running locally without Docker:
+cd backend
+npm run seed
+Step 5: Verify Everything is Running
+Bash
+
+# Check health endpoints
+curl http://localhost:3001/api/v1/health
+# Expected: {"status":"ok","timestamp":"...","uptime":...}
+
+# Check frontend
+curl http://localhost:3000
+# Expected: HTML response
+
+# Check MongoDB connection
+docker-compose exec mongodb mongosh --eval "db.stats()"
+Step 6: Access the Application
+Service	URL	Description
+Frontend	http://localhost:3000	Main application
+Backend API	http://localhost:3001/api/v1	REST API
+MongoDB	localhost:27017	Database (use MongoDB Compass)
+🖥️ Local Development WITHOUT Docker
+Bash
+
+# Terminal 1: Start MongoDB
+# Using Docker (easiest):
+docker run -d -p 27017:27017 --name mongodb mongo:7.0
+
+# Or install MongoDB locally and run:
+mongod
+
+# Terminal 2: Start Backend
+cd backend
+npm install
+npm run start:dev
+
+# Terminal 3: Start Frontend
+cd frontend
+npm install
+npm run dev
+☁️ Production Deployment Options
+Option 1: VPS/Cloud Server (DigitalOcean, AWS EC2, etc.)
+Bash
+
+# ==========================================
+# SERVER SETUP (Ubuntu 22.04)
+# ==========================================
+
+# 1. SSH into your server
+ssh root@your-server-ip
+
+# 2. Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# 3. Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 4. Install Docker Compose
+sudo apt install docker-compose-plugin -y
+
+# 5. Verify installation
+docker --version
+docker compose version
+
+# 6. Create application directory
+mkdir -p /var/www/marketplace
+cd /var/www/marketplace
+
+# 7. Clone your repository
+git clone https://github.com/your-username/marketplace-app.git .
+
+# 8. Create production environment file
+nano .env.production
+
+# 9. Build and start production containers
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 10. View logs
+docker compose -f docker-compose.prod.yml logs -f
+
+# 11. Run database seed (first time only)
+docker compose -f docker-compose.prod.yml exec backend npm run seed
+Option 2: Platform as a Service (PaaS)
+Deploy to Railway.app:
+
+Bash
+
+# 1. Install Railway CLI
+npm install -g @railway/cli
+
+# 2. Login to Railway
+railway login
+
+# 3. Initialize project
+cd backend
+railway init
+
+# 4. Add MongoDB service via Railway dashboard
+
+# 5. Set environment variables via Railway dashboard
+
+# 6. Deploy
+railway up
+Deploy to Render.com:
+
+Connect your GitHub repository
+Create a new "Web Service" for backend
+Create a new "Static Site" for frontend (or Web Service for SSR)
+Add MongoDB using Render's managed MongoDB or MongoDB Atlas
+Configure environment variables in Render dashboard
+Deploy to Vercel (Frontend) + Railway (Backend):
+
+Bash
+
+# Frontend (Vercel)
+cd frontend
+npx vercel
+
+# Backend (Railway)
+cd backend
+railway up
+📦 CI/CD Pipeline with GitHub Actions
+.github/workflows/deploy.yml
+YAML
+
+# ============================================
+# GITHUB ACTIONS - CI/CD PIPELINE
+# ============================================
+# This workflow runs on every push to main branch
+# It tests, builds, and deploys the application
+# ============================================
+
+name: Deploy Marketplace App
+
+# Trigger on push to main branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Environment variables available to all jobs
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ------------------------------------------
+  # JOB 1: Test Backend
+  # ------------------------------------------
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: ./backend
+        run: npm run lint
+      
+      - name: Run tests
+        working-directory: ./backend
+        run: npm run test
+      
+      - name: Build
+        working-directory: ./backend
+        run: npm run build
+
+  # ------------------------------------------
+  # JOB 2: Test Frontend
+  # ------------------------------------------
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: ./frontend
+        run: npm run lint
+      
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_UPLOADS_URL: ${{ secrets.NEXT_PUBLIC_UPLOADS_URL }}
+
+  # ------------------------------------------
+  # JOB 3: Build and Push Docker Images
+  # ------------------------------------------
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+      
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_UPLOADS_URL=${{ secrets.NEXT_PUBLIC_UPLOADS_URL }}
+
+  # ------------------------------------------
+  # JOB 4: Deploy to Server
+  # ------------------------------------------
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/marketplace
+            
+            # Pull latest images
+            docker compose -f docker-compose.prod.yml pull
+            
+            # Restart services with new images
+            docker compose -f docker-compose.prod.yml up -d
+            
+            # Clean up old images
+            docker image prune -f
+            
+            # Verify deployment
+            curl -f http://localhost:3001/api/v1/health || exit 1
+            
+            echo "Deployment successful!"
+📖 Application Flow Explanation
+🔐 Authentication Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    AUTHENTICATION FLOW                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1. USER REGISTRATION                                               │
+│  ┌─────────┐    POST /auth/register     ┌─────────┐                │
+│  │ Frontend│─────────────────────────────▶│ Backend │               │
+│  │         │    {email, password, ...}   │         │               │
+│  └─────────┘                             └────┬────┘               │
+│       ▲                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Hash Password  │           │
+│       │                              │  (bcrypt 12)    │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Save to MongoDB │           │
+│       │                              │  (users collection)│         │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Generate JWT   │           │
+│       │                              │  Token          │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │       {user, accessToken}            │                     │
+│       └───────────────────────────────────────┘                     │
+│                                                                     │
+│  2. USER LOGIN                                                      │
+│  ┌─────────┐    POST /auth/login        ┌─────────┐                │
+│  │ Frontend│─────────────────────────────▶│ Backend │               │
+│  │         │    {email, password}        │         │               │
+│  └─────────┘                             └────┬────┘               │
+│       ▲                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │ Find User by    │           │
+│       │                              │ Email           │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │ Compare Password │           │
+│       │                              │ (bcrypt.compare) │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Generate JWT   │           │
+│       │                              └────────┬────────┘           │
+│       │       {user, accessToken}            │                     │
+│       └───────────────────────────────────────┘                     │
+│                                                                     │
+│  3. PROTECTED REQUEST                                               │
+│  ┌─────────┐    GET /goods/my-goods     ┌─────────┐                │
+│  │ Frontend│─────────────────────────────▶│ Backend │               │
+│  │         │    Header: Authorization:   │         │               │
+│  │         │    Bearer <token>           │         │               │
+│  └─────────┘                             └────┬────┘               │
+│       ▲                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  JWT Guard      │           │
+│       │                              │  Validate Token │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Roles Guard    │           │
+│       │                              │  Check Role     │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Controller     │           │
+│       │                              │  Handler        │           │
+│       │                              └────────┬────────┘           │
+│       │       {data}                         │                     │
+│       └───────────────────────────────────────┘                     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+📦 Goods Upload Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    GOODS CREATION FLOW                              │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1. VENDOR FILLS FORM                                               │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │  GoodsForm Component                                          │ │
+│  │  ┌─────────────────────────────────────────────────────────┐  │ │
+│  │  │ Title: [_______________]                                 │  │ │
+│  │  │ Description: [_________________________________________] │  │ │
+│  │  │ Price: [$___] Type: [Sale ▼]                            │  │ │
+│  │  │ Category: [Electronics ▼] Location: [__________]        │  │ │
+│  │  │                                                          │  │ │
+│  │  │ Images: [📤 Upload]                                     │  │ │
+│  │  │ ┌────┐ ┌────┐ ┌────┐                                   │  │ │
+│  │  │ │ 🖼️ │ │ 🖼️ │ │ 🖼️ │                                   │  │ │
+│  │  │ └────┘ └────┘ └────┘                                   │  │ │
+│  │  │                                          [Create Goods] │  │ │
+│  │  └─────────────────────────────────────────────────────────┘  │ │
+│  └───────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│  2. IMAGE UPLOAD TO CLOUDINARY                                      │
+│  ┌─────────┐                        ┌─────────────────┐            │
+│  │ Frontend│───POST /uploads/multi──▶│     Backend     │            │
+│  │         │   (multipart/form-data)│                 │            │
+│  └────┬────┘                        └────────┬────────┘            │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  Multer parses  │           │
+│       │                              │  file buffers   │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │  UploadsService │           │
+│       │                              │  validates file │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │                                       ▼                     │
+│       │                              ┌─────────────────┐           │
+│       │                              │   CLOUDINARY    │           │
+│       │                              │   ┌───────────┐ │           │
+│       │                              │   │ Transform │ │           │
+│       │                              │   │ Optimize  │ │           │
+│       │                              │   │ Store     │ │           │
+│       │                              │   └───────────┘ │           │
+│       │                              └────────┬────────┘           │
+│       │                                       │                     │
+│       │    {public_id, secure_url}           │                     │
+│       ◀───────────────────────────────────────┘                     │
+│                                                                     │
+│  3. CREATE GOODS WITH IMAGE URLs                                    │
+│  ┌─────────┐    POST /goods           ┌─────────┐                  │
+│  │ Frontend│──────────────────────────▶│ Backend │                  │
+│  │         │  {title, description,    │         │                  │
+│  │         │   price, images: [urls]} │         │                  │
+│  └─────────┘                          └────┬────┘                  │
+│       ▲                                     │                       │
+│       │                                     ▼                       │
+│       │                            ┌─────────────────┐             │
+│       │                            │ GoodsService    │             │
+│       │                            │ - Validate      │             │
+│       │                            │ - Get vendor    │             │
+│       │                            │ - Create goods  │             │
+│       │                            └────────┬────────┘             │
+│       │                                     │                       │
+│       │                                     ▼                       │
+│       │                            ┌─────────────────┐             │
+│       │                            │    MongoDB      │             │
+│       │                            │  goods.insert() │             │
+│       │                            │  status:PENDING │             │
+│       │                            └────────┬────────┘             │
+│       │    {goods object}                   │                       │
+│       └─────────────────────────────────────┘                       │
+│                                                                     │
+│  4. ADMIN APPROVAL                                                  │
+│  ┌─────────┐  PATCH /admin/goods/:id/approve  ┌─────────┐          │
+│  │  Admin  │──────────────────────────────────▶│ Backend │          │
+│  │ Frontend│                                   │         │          │
+│  └─────────┘                                   └────┬────┘          │
+│       ▲                                             │               │
+│       │                                             ▼               │
+│       │                                    ┌─────────────────┐     │
+│       │                                    │    MongoDB      │     │
+│       │                                    │  Update status  │     │
+│       │                                    │  to: APPROVED   │     │
+│       │                                    └────────┬────────┘     │
+│       │    {updated goods}                         │               │
+│       └────────────────────────────────────────────┘               │
+│                                                                     │
+│  5. PUBLIC ACCESS                                                   │
+│  ┌─────────┐    GET /goods            ┌─────────┐                  │
+│  │ Public  │──────────────────────────▶│ Backend │                  │
+│  │ User    │  (no auth required)      │         │                  │
+│  └─────────┘                          └────┬────┘                  │
+│       ▲                                     │                       │
+│       │                                     ▼                       │
+│       │                            ┌─────────────────┐             │
+│       │                            │ GoodsService    │             │
+│       │                            │ findAll()       │             │
+│       │                            │ where status=   │             │
+│       │                            │ APPROVED        │             │
+│       │                            └────────┬────────┘             │
+│       │    {goods[]}                        │                       │
+│       └─────────────────────────────────────┘                       │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+🔄 Request/Response Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    REQUEST/RESPONSE LIFECYCLE                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │                        FRONTEND (Next.js)                     │  │
+│  │                                                               │  │
+│  │  1. User Action (click, submit, etc.)                        │  │
+│  │           │                                                   │  │
+│  │           ▼                                                   │  │
+│  │  2. React Component calls Service                            │  │
+│  │     goodsService.create(data)                                │  │
+│  │           │                                                   │  │
+│  │           ▼                                                   │  │
+│  │  3. API Service (axios)                                      │  │
+│  │     - Adds Authorization header                              │  │
+│  │     - Sends HTTP request                                     │  │
+│  └──────────┬───────────────────────────────────────────────────┘  │
+│             │                                                       │
+│             │  HTTP Request                                         │
+│             │  POST /api/v1/goods                                  │
+│             │  Headers: {Authorization: Bearer <token>}            │
+│             │  Body: {title, price, ...}                           │
+│             ▼                                                       │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │                        BACKEND (NestJS)                       │  │
+│  │                                                               │  │
+│  │  4. Request enters main.ts                                   │  │
+│  │           │                                                   │  │
+│  │           ▼                                                   │  │
+│  │  5. Global Middleware                                        │  │
+│  │     - CORS validation                                        │  │
+│  │     - Body parsing                                           │  │
+│  │           │                                                   │  │
+│  │           ▼                                                   │  │
+│  │  6. ValidationPipe                                           │  │
+│  │     - Validates DTO                                          │  │
+│  │     - Transforms types                                       │  │
+│  │           │                                                   │  │
+│  │           ▼                                                   │  │
+│  │  7. Guards                                                   │  │
+│  │     ┌─────────────┐                                          │  │
+│  │     │ JwtAuthGuard │ ──▶ Validates JWT token                 │  │
+│  │     └──────┬──────┘                                          │  │
+│  │            ▼                                                  │  │
+│  │     ┌─────────────┐                                          │  │
+│  │     │ RolesGuard  │ ──▶ Checks user role                     │  │
+│  │     └──────┬──────┘                                          │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  8. Controller                                               │  │
+│  │     @Post() create(@Body() dto, @CurrentUser() user)        │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  9. Service (Business Logic)                                 │  │
+│  │     - Validates business rules                               │  │
+│  │     - Interacts with database                                │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  10. MongoDB (Mongoose)                                      │  │
+│  │      - Executes query                                        │  │
+│  │      - Returns document                                      │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  11. TransformInterceptor                                    │  │
+│  │      - Wraps response: {success: true, data: ...}           │  │
+│  │                                                               │  │
+│  └──────────┬───────────────────────────────────────────────────┘  │
+│             │                                                       │
+│             │  HTTP Response                                        │
+│             │  200 OK                                               │
+│             │  {success: true, data: {...}}                        │
+│             ▼                                                       │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │                        FRONTEND (Next.js)                     │  │
+│  │                                                               │  │
+│  │  12. API Service receives response                           │  │
+│  │      - Extracts data from response                           │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  13. Component receives data                                 │  │
+│  │      - Updates state                                         │  │
+│  │      - Re-renders UI                                         │  │
+│  │            │                                                  │  │
+│  │            ▼                                                  │  │
+│  │  14. User sees updated UI                                    │  │
+│  │      - Success toast notification                            │  │
+│  │      - Navigate to new page                                  │  │
+│  │                                                               │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+🎯 Interview Topics & Quick References
+NestJS Concepts
+Concept	Description	Example
+Module	Organizes related code	@Module({ imports, controllers, providers })
+Controller	Handles HTTP requests	@Controller('goods')
+Service	Contains business logic	@Injectable()
+Guard	Protects routes	JwtAuthGuard, RolesGuard
+Pipe	Transforms/validates data	ValidationPipe
+Interceptor	Modifies request/response	TransformInterceptor
+Filter	Handles exceptions	HttpExceptionFilter
+Decorator	Adds metadata	@Roles(), @CurrentUser()
+MongoDB/Mongoose Concepts
+Concept	Description	Example
+Schema	Defines document structure	@Schema() class User
+Model	Interface to collection	this.userModel.find()
+Document	Single record	UserDocument
+Index	Speeds up queries	@Index({ email: 1 })
+Population	Join documents	.populate('vendor')
+Virtuals	Computed properties	fullName getter
+Docker Commands Cheat Sheet
+Bash
+
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f [service]
+
+# Rebuild images
+docker-compose up -d --build
+
+# Enter container shell
+docker-compose exec backend sh
+
+# Remove all containers and volumes
+docker-compose down -v
+
+# List running containers
+docker ps
+
+# View container resources
+docker stats
+Git Commands Cheat Sheet
+Bash
+
+# Clone repository
+git clone <url>
+
+# Create new branch
+git checkout -b feature/new-feature
+
+# Stage changes
+git add .
+
+# Commit changes
+git commit -m "feat: add new feature"
+
+# Push to remote
+git push origin feature/new-feature
+
+# Pull latest changes
+git pull origin main
+
+# View status
+git status
+
+# View log
+git log --oneline
+✅ Pre-Interview Checklist
+Technical Knowledge
+ Understand NestJS module structure
+ Know how JWT authentication works
+ Understand MongoDB document model
+ Know Docker basics (images, containers, volumes)
+ Understand REST API design
+ Know React hooks and state management
+Practical Skills
+ Can start the application locally
+ Can run database seeds
+ Can debug using logs
+ Can explain the code flow
+ Can make simple modifications
+Common Interview Questions
+"How does authentication work in this application?"
+"Explain the difference between Guards and Middleware"
+"How does file upload work with Cloudinary?"
+"What's the purpose of DTOs?"
+"How do you handle errors in NestJS?"
+"What's the difference between development and production Docker builds?"
+"How do you protect routes based on user roles?"
+"Explain the MongoDB schema relationships"
+Good luck with your interview! 🍀

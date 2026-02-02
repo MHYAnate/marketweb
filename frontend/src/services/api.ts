@@ -1,7 +1,18 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
-import { ApiError } from '../types/api.types';
+import { ApiError } from '@/types/api.types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+export interface CloudinaryUploadResponse {
+  public_id: string;
+  secure_url: string;
+  url: string;
+  format: string;
+  width: number;
+  height: number;
+  bytes: number;
+  resource_type: string;
+}
 
 class ApiService {
   private api: AxiosInstance;
@@ -73,30 +84,50 @@ class ApiService {
     return response.data.data;
   }
 
-  async uploadFile(file: File, folder: string = 'goods'): Promise<{ filename: string; path: string }> {
+  // Cloudinary Upload - Single File
+  async uploadFile(file: File, folder: string = 'goods'): Promise<CloudinaryUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await this.api.post(`/uploads/single?folder=${folder}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.api.post<{ success: boolean; data: CloudinaryUploadResponse }>(
+      `/uploads/single?folder=${folder}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
     return response.data.data;
   }
 
-  async uploadFiles(files: File[], folder: string = 'goods'): Promise<{ filename: string; path: string }[]> {
+  // Cloudinary Upload - Multiple Files
+  async uploadFiles(files: File[], folder: string = 'goods'): Promise<CloudinaryUploadResponse[]> {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
 
-    const response = await this.api.post(`/uploads/multiple?folder=${folder}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await this.api.post<{ success: boolean; data: CloudinaryUploadResponse[] }>(
+      `/uploads/multiple?folder=${folder}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
     return response.data.data;
+  }
+
+  // Delete file from Cloudinary
+  async deleteFile(publicId: string): Promise<void> {
+    await this.api.delete(`/uploads/single/${encodeURIComponent(publicId)}`);
+  }
+
+  // Delete file by URL
+  async deleteFileByUrl(url: string): Promise<void> {
+    await this.api.post('/uploads/delete-by-url', { url });
   }
 }
 
