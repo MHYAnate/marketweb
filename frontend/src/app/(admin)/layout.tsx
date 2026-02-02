@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Users,
   Package,
-  Settings,
 } from 'lucide-react';
 
 const adminLinks = [
