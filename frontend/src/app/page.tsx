@@ -33,7 +33,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-20">
         <div className="container">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-rose-800">
               Find Quality Goods from Verified Vendors
             </h1>
             <p className="text-xl text-primary-100 mb-8">
