@@ -1,11 +1,9 @@
 'use client';
 
 import  { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/contexts/AuthContext';
 import { vendorService } from '@/services/vendor.service';
 import { Vendor, VendorStatus } from '@/types/vendor.types';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -26,8 +24,6 @@ const vendorSchema = z.object({
 type VendorFormData = z.infer<typeof vendorSchema>;
 
 export default function VendorProfilePage() {
-  const { isVendor } = useAuth();
-  const router = useRouter();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

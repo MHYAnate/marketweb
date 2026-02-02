@@ -23,7 +23,6 @@ export default function GoodsTable({
   onApprove,
   onFlag,
   onDrop,
-  isLoading = false,
 }: GoodsTableProps) {
   const [selectedGoods, setSelectedGoods] = useState<Goods | null>(null);
   const [actionType, setActionType] = useState<'view' | 'flag' | 'drop' | null>(null);

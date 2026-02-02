@@ -22,7 +22,6 @@ export default function VendorTable({
   onVerify,
   onReject,
   onSuspend,
-  isLoading = false,
 }: VendorTableProps) {
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [actionType, setActionType] = useState<'view' | 'reject' | 'suspend' | null>(null);

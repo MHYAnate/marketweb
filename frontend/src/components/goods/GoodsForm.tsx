@@ -11,7 +11,7 @@ import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { DEFAULT_CATEGORIES, GOODS_TYPES } from '@/utils/constants';
-import api, { CloudinaryUploadResponse } from '@/services/api';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 const goodsSchema = z.object({

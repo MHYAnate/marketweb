@@ -10,7 +10,6 @@ import {
   Package,
   Plus,
   Store,
-  Settings,
 } from 'lucide-react';
 
 const sidebarLinks = [
