@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { Vendor, VendorStatus } from '@/types/vendor.types';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';

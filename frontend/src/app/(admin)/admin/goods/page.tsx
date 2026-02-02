@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import  { useEffect, useState, useCallback } from 'react';
 import { Goods, GoodsStatus } from '@/types/goods.types';
 import { adminService } from '@/services/admin.service';
 import GoodsTable from '@/components/admin/GoodsTable';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import  { useEffect, useState, useCallback } from 'react';
 import { Goods, GoodsQuery, GoodsType } from '@/types/goods.types';
 import { goodsService } from '@/services/goods.service';
 import GoodsList from '@/components/goods/GoodsList';

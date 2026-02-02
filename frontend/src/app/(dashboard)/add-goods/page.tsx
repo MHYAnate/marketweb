@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CreateGoodsData } from '@/types/goods.types';
 import { goodsService } from '@/services/goods.service';

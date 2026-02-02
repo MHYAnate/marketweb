@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { GoodsType } from '@/types/goods.types';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';

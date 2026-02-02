@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Goods } from '@/types/goods.types';
 import GoodsCard from './GoodsCard';
 import Loading from '@/components/ui/Loading';
